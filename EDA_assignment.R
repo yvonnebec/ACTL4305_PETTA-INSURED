@@ -8,10 +8,14 @@ library(lubridate)
 sample_price <- read.csv("Sample_price_output_file.csv")
 claims_data <- read.csv("UNSW_claims_data.csv")
 earned_data <- read.csv("UNSW_earned_data_adjusted_Sep27.csv")
-severity_dataset <- read.csv("UNSW_claims_data_tagged.csv")
 
+View(claims_data)
 
+earned_data[earned_data == ""] <- NA
+claims_data[claims_data == ""] <- NA
 
+colMeans(is.na(claims_data))
+colMeans(is.na(earned_data))
 # Notes to self:
 # - Model larger and smaller claims differently
 
@@ -57,14 +61,20 @@ severity_dataset <- severity_dataset %>%
   select(-tenure.x, -tenure.y) %>% 
   filter(tenure >= 0, earned_units > 0)
 
-View(severity_dataset)
 
+# If there's only 1 claim for an exposure_id then excess is applied to that 
+# claim
 
-abc <- severity_dataset %>%
-  mutate(excess_applied = (
-    total_claim_amount - (claim_paid / (nb_contribution/100)) == nb_excess/1.1)
-  ) %>%
-  mutate(claim_start_date = as.Date(claim_start_date)) %>%
-  arrange(exposure_id, condition_category, claim_start_date)
+severity_dataset <- severity_dataset %>%
+  group_by(exposure_id) %>%
+  mutate(excess_applied = ifelse(n() == 1, TRUE, FALSE)) %>%
+  ungroup()
 
-View(abc)
+# If there's only more than 1 claim, ordering by date and condition,
+# the first has excess applied
+
+severity_dataset <- severity_dataset %>%
+  group_by(exposure_id, condition_category) %>%
+  arrange(claim_start_date) %>%  # Sort by claim_start_date
+  mutate(excess_applied = ifelse(row_number() == 1, TRUE, excess_applied)) %>% 
+  ungroup()
