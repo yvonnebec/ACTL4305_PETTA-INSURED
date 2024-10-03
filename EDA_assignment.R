@@ -10,7 +10,7 @@ claims_data <- read.csv("UNSW_claims_data.csv")
 earned_data <- read.csv("UNSW_earned_data_adjusted_Sep27.csv")
 
 View(claims_data)
-
+View(earned_data)
 earned_data[earned_data == ""] <- NA
 claims_data[claims_data == ""] <- NA
 
@@ -77,33 +77,51 @@ severity_dataset <- severity_dataset %>%
 # If there's only more than 1 claim, ordering by date and condition,
 # the first has excess applied
 
-severity_dataset <- severity_dataset %>%
-  group_by(exposure_id, condition_category) %>%
-  arrange(claim_start_date) %>%  # Sort by claim_start_date
+backout_severity_dataset <- severity_dataset %>%
+  group_by(exposure_id, condition_category,
+           claim_month = floor_date(as.Date(claim_start_date), "month")) %>%
+  arrange(exposure_id) %>%  # Sort by claim_start_date
   mutate(excess_applied = ifelse(row_number() == 1, TRUE, excess_applied)) %>% 
   ungroup()
+
+View(severity_dataset)
 
 #######################################
 # Concatenating by condition category #
 #######################################
 
-# CHECK THIS LOGIC PLS
-
-grouping <- severity_dataset %>%
-  group_by(id, condition_category) %>% 
-  arrange(claim_start_date) %>% 
+severity_claim_data <- severity_dataset %>%
+  group_by(id) %>% 
   summarise(
-    num_claims = n(),  # Count the number of claims
-    claim_first_date = min(claim_start_date),  # Get the earliest claim start date
-    claim_last_date = max(claim_start_date),   # Get the latest claim start date
-    cumulative_claim_paid = sum(claim_paid, na.rm = TRUE),  # Sum claim_paid
-    cumulative_total_claim_paid = sum(total_claim_amount, na.rm = TRUE),  # Sum total_claim_paid
-    .groups = "keep"
+    multiple_claims = ifelse(n() > 1, TRUE, FALSE),
+    num_claims = n(),
+    num_unique_conditions = n_distinct(condition_category),
+    claim_first_date = min(claim_start_date),
+    claim_last_date = max(claim_start_date),
+    cumulative_claim_paid = sum(claim_paid),
+    cumulative_total_claim_amount = sum(total_claim_amount)
+    # tenure_difference = max(tenure) - min(tenure), Not sure about tenure diff
   ) %>% 
-  ungroup()
+  ungroup() %>% 
+  mutate(exposure_id = substring(id, 3))
 
-View(grouping)
+###############################
+# Merge back into earned data #
+###############################
 
+severity_total <- earned_data %>% 
+  left_join(severity_claim_data, by = "id") %>% 
+  select(-exposure_id.y) %>%
+  rename(exposure_id = exposure_id.x) %>% 
+  mutate(
+    cumulative_claim_paid = ifelse(is.na(cumulative_claim_paid), 0, cumulative_claim_paid),
+    cumulative_total_claim_amount = ifelse(is.na(cumulative_total_claim_amount), 0, cumulative_total_claim_amount),
+    num_unique_conditions = ifelse(is.na(num_unique_conditions), 0, num_unique_conditions),
+    num_claims = ifelse(is.na(num_claims), 0, num_claims),
+    multiple_claims = ifelse(is.na(multiple_claims), FALSE, multiple_claims)
+  )
+
+View(severity_total %>% group_by(exposure_id) %>% filter(n() > 5))
 
 ##############################
 # Updating column data types #
@@ -158,8 +176,8 @@ View(severity_dataset)
 #################
 colMeans(is.na(severity_dataset))
 
-# Hardcode - mode
+# Hardcode - impute by mode
 # pet_de_sexed_age, pet_de_sexed_age (>70% NAs)
 
-# Predict - values using data imputation ( < 10 % NA's )
+# Predict - using models for data imputation ( < 10 % NA's )
 # owner_age_years, person_dob, nb_breed_trait
