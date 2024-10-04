@@ -170,6 +170,96 @@ for (col in numeric_columns) {
 View(severity_dataset)
 
 
+###################
+# Checking claims #
+###################
+
+#Check Claim_id
+Claims_id <- abc %>%
+  group_by(claim_id) %>%
+  summarise(count = n()) %>%
+  filter(count > 1)
+
+#140 claims have been split for multiple records,
+#i.e. split because claiming on different illness
+
+
+summary(abc)
+str(abc)
+
+#Need to Covert variables to factors
+
+###---------------------CHRONIC ISSUES--------------------------------###
+
+#Concatenate condition_category
+# Same Pet, Same condition different months for signs of chronic illness
+
+test <- abc %>%
+  mutate(condition_exposure = paste(condition_category, exposure_id, sep = "_"))
+
+test <- test %>%
+  group_by(condition_exposure) %>%
+  summarise(count = n()) %>%
+  filter(count > 1)
+
+test <- test %>%
+  filter(count > 5)
+
+ggplot(test, aes(x = count)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  labs(title = "Histogram of Counts by repeat condition claim",
+       x = "Count",
+       y = "Frequency") +
+  theme_minimal()
+
+#Overwhelming is other which might not be sign of chronic illness
+#Will filter and check if premiums have been increased but from
+#guest lecture, 
+
+
+
+### Couldn't check for discounts for owners with mutiple pets as
+### account_id was removed from dataset
+
+
+
+# Question: 
+# Might need to join claim_start_date and filter for earliest
+
+
+
+
+###----------Frequency grouping--------------###
+
+
+###Unique exposures
+Frequency <- abc %>%
+  select(claim_start_date, exposure_id, condition_category) %>%
+  mutate(month = format(claim_start_date, "%B")) %>%
+  group_by(month) %>%
+  summarise(total_exposures = n_distinct(exposure_id))
+
+#total exposures
+frequency <- abc %>%
+  select(claim_start_date, exposure_id, condition_category) %>%
+  mutate(month = format(claim_start_date, "%B")) %>%
+  group_by(month) %>%
+  summarise(total_exposures = n())
+
+
+
+frequency <- abc %>%
+  select(claim_start_date, exposure_id, condition_category) %>%
+  mutate(month = format(claim_start_date, "%B")) %>%
+  group_by(month, exposure_id) %>%
+  summarise(
+    number_of_claims = n(),
+    number_of_conditions = n_distinct(condition_category)
+  ) 
+
+# %>%
+# ungroup()
+
 
 #################
 # Handling NA's #
@@ -181,3 +271,6 @@ colMeans(is.na(severity_dataset))
 
 # Predict - using models for data imputation ( < 10 % NA's )
 # owner_age_years, person_dob, nb_breed_trait
+
+
+
