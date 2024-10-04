@@ -97,13 +97,13 @@ severity_dataset_backed <- severity_dataset %>%
     claim_status == "covered_paid" ~ total_claim_amount,
     
     # If claim_status is "covered_with_exclusions_paid" and excess is applied
-    claim_status == "covered_with_exclusions_paid" & excess_applied == TRUE ~ (claim_paid / (nb_contribution / 100)) + (nb_contribution_excess / 1.1),
+    claim_status == "covered_with_exclusions_paid" & excess_applied == TRUE ~ (claim_paid / (nb_contribution / 100)) + (nb_excess / 1.1),
     
     # If claim_status is "covered_with_exclusions_paid" and no excess is applied
     claim_status == "covered_with_exclusions_paid" & excess_applied == FALSE ~ (claim_paid / (nb_contribution / 100)),
     
     # For all other claim_status values where excess is applied
-    excess_applied == TRUE ~ (claim_paid / (nb_contribution / 100)) + (nb_contribution_excess / 1.1),
+    excess_applied == TRUE ~ (claim_paid / (nb_contribution / 100)) + (nb_excess / 1.1),
     
     # For all other claim_status values where no excess is applied
     excess_applied == FALSE ~ (claim_paid / (nb_contribution / 100))
