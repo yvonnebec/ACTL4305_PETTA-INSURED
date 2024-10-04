@@ -176,10 +176,10 @@ severity_total$claim_last_date <- as.Date(severity_total$claim_last_date, format
 factor_columns <- c("exposure_id", "pet_gender", "pet_de_sexed", "pet_is_switcher", "nb_address_type_adj", 
                     "nb_suburb", "nb_state", "nb_breed_type", "nb_breed_trait", "nb_breed_name_unique",
                     "nb_breed_name_unique_concat", "is_multi_pet_plan", "quote_time_group",
-                    "exposure_id_1", "id")
+                    "exposure_id_1", "id", , "pet_age_years")
 
 
-integer_columns <- c("pet_de_sexed_age", "pet_age_years", "num_claims", "num_unique_conditions",
+integer_columns <- c("pet_de_sexed_age", "num_claims", "num_unique_conditions",
                      "tenure.y")
 
 
