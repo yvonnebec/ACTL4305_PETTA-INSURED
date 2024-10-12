@@ -175,6 +175,7 @@ date_columns <- c(
 severity_total$claim_first_date <- as.Date(severity_total$claim_first_date)
 severity_total$claim_last_date <- as.Date(severity_total$claim_last_date)
 
+
 factor_columns <- c("exposure_id", "pet_gender", "pet_de_sexed", "pet_is_switcher", "nb_address_type_adj", 
                     "nb_suburb", "nb_state", "nb_breed_type", "nb_breed_trait", "nb_breed_name_unique",
                     "nb_breed_name_unique_concat", "is_multi_pet_plan", "quote_time_group",
@@ -268,11 +269,13 @@ severity_claims <- severity_total %>% filter(num_claims > 0)
 # Pet_gender 
 #
 
-ggplot(severity_claims, aes(x = pet_gender, y = cumulative_claim_paid)) +
-  geom_boxplot() +
-  labs(title = "Cumulative Claims by Pet Gender", x = "Pet Gender", y = "Cumulative Claims Paid") +
-  theme_minimal() +
-  scale_y_continuous(limits = c(0,1000))
+ggplot(severity_claims, aes(x = pet_gender, y = cumulative_claim_amount / num_claims, fill = pet_gender)) +
+  stat_summary(fun = "mean", geom = "bar", color = "black") +
+  labs(title = "Average Claims by Pet Gender", 
+       x = "Pet Gender", 
+       y = "Average Cumulative Claim Amount") +
+  theme_minimal()
+
 
 ggplot(severity_claims, aes(x = pet_gender, y = log(cumulative_claim_paid))) +
   geom_boxplot() +
@@ -299,12 +302,12 @@ ggplot(severity_claims, aes(x = pet_de_sexed, y = log(cumulative_claim_paid))) +
 #
 
 ggplot(severity_claims, aes(x = pet_de_sexed_age, y = cumulative_claim_paid)) +
-  geom_point(alpha = 0.5) +
+  geom_boxplot() +
   labs(title = "Cumulative Claims by Pet De-sexed Age", x = "De-sexed Age", y = "Cumulative Claims Paid") +
   theme_minimal()
 
 ggplot(severity_claims, aes(x = pet_de_sexed_age, y = log(cumulative_claim_paid))) +
-  geom_point(alpha = 0.5) +
+  geom_boxplot() +
   labs(title = "Log-Transformed Cumulative Claims by Pet De-sexed Age", x = "De-sexed Age", y = "Log(Cumulative Claims + 1)") +
   theme_minimal()
 
@@ -321,16 +324,17 @@ severity_age_bins <- severity_claims %>%
                                         seq(5, max(pet_age_months, na.rm = TRUE), by = 5)-1)
   ))
 
-ggplot(severity_age_bins, aes(x = age_bins, y = cumulative_claim_paid)) +
+ggplot(severity_age_bins, aes(x = age_bins, y = cumulative_claim_amount / num_claims)) +
   geom_boxplot() +
-  geom_jitter(aes(color = cumulative_claim_paid), width = 0.2, height = 0, alpha = 0.6) +
+  #geom_jitter(aes(color = cumulative_claim_paid), width = 0.2, height = 0, alpha = 0.6) +
   labs(title = "Cumulative Claims by Pet Age (Months)", x = "Pet Age (Months)", y = "Cumulative Claims Paid") +
-  theme_minimal()
+  theme_minimal() + 
+  scale_y_continuous(limits = c(0,1000))
 
-ggplot(severity_age_bins, aes(x = age_bins, y = log(cumulative_claim_paid))) +
+ggplot(severity_age_bins, aes(x = age_bins, y = log(cumulative_claim_amount / num_claims))) +
   geom_boxplot() +
-  geom_jitter(aes(color = log(cumulative_claim_paid + 1)), width = 0.2, height = 0, alpha = 0.6) +
-  labs(title = "Log-Transformed Cumulative Claims by Pet Age (Months)", x = "Pet Age (Months)", y = "Log(Cumulative Claims + 1)") +
+  #geom_jitter(aes(color = log(cumulative_claim_paid + 1)), width = 0.2, height = 0, alpha = 0.6) +
+  labs(title = "Log-Transformed Cumulative Amount / Claim by Pet Age (Months)", x = "Pet Age (Months)", y = "Log(Cumulative Claims)") +
   theme_minimal()
 
 severity_bins <- severity_claims %>%
@@ -342,12 +346,12 @@ severity_bins <- severity_claims %>%
                                         seq(5, max(pet_age_months, na.rm = TRUE), by = 5)-1)
   ))
 
-ggplot(severity_bins, aes(x = age_bins, y = cumulative_claim_paid)) + 
+ggplot(severity_bins, aes(x = age_bins, y = cumulative_claim_amount / num_claims)) + 
   geom_boxplot() + 
-  geom_jitter(aes(color = cumulative_claim_paid), width = 0.2, height = 0, alpha = 0.6) +
-  labs(title = "Cumulative Claims Paid by Pet Age (Months)",
+  geom_jitter(aes(color = cumulative_claim_amount), width = 0.2, height = 0, alpha = 0.6) +
+  labs(title = "Cumulative Claims Amount / Claim by Pet Age (Months)",
        x = "Pet Age (Months)",
-       y = "Cumulative Claims Paid") + 
+       y = "Claim Amount") + 
   theme_minimal() + 
   scale_color_gradient(low = "blue", high = "red") +
   scale_y_continuous(limits = c(5000,20000))
@@ -444,6 +448,13 @@ ggplot(prop_claims_address_monthly, aes(x = UW_Date, y = log(cumulative_claims),
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1)
   )
+
+install.packages("devtools")
+library(devtools)
+library(useThis)
+devtools::install_github('Mikata-Project/ggthemr')
+library(ggthemr)
+ggthemr('fresh')
 
 ggplot(prop_claims_address_monthly, aes(x = UW_Date, y = proportion_claims, color = nb_address_type_adj)) +
   geom_line(size = 1) +
