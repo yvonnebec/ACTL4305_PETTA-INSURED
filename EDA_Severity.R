@@ -543,6 +543,7 @@ ggplot(num_breeds_severity_claims, aes(x = nb_breed_group, y = average_claim_amo
   scale_y_continuous(limits = c(0,500)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+
 ### 
 ### nb_average_breed_size
 ###
@@ -559,6 +560,7 @@ severity_claims <- severity_claims %>%
 mean_claim_by_breed_size_category <- severity_claims %>%
   group_by(breed_size_category) %>%
   summarise(mean_claim_amount = mean(average_claim_amount, na.rm = TRUE))
+
 
 ggplot(mean_claim_by_breed_size_category, aes(x = breed_size_category, y = mean_claim_amount, fill = breed_size_category)) + 
   geom_bar(stat = "identity") + 
@@ -624,18 +626,6 @@ claim_stats_by_breed_type <- severity_claims %>%
                names_to = "claim_type", 
                values_to = "claim_amount")
 
-ggplot(claim_stats_by_breed_type, aes(x = nb_breed_type, y = claim_amount, fill = claim_type)) + 
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(title = "Mean and Median Claim Amount by Breed Type", 
-       x = "Breed Type", 
-       y = "Claim Amount", 
-       fill = "Claim Type") + 
-  scale_fill_manual(values = c("mean_claim_amount" = "steelblue", "median_claim_amount" = "peru"), 
-                    labels = c("mean_claim_amount" = "Mean", "median_claim_amount" = "Median")) +
-  scale_y_continuous(labels = scales::comma) + 
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 ### 
 ### nb_breed_trait
 ###
@@ -664,18 +654,6 @@ claim_stats_by_breed_group <- severity_claims %>%
                names_to = "claim_type", 
                values_to = "claim_amount") %>% 
   filter(!is.na(breed_group))
-
-ggplot(claim_stats_by_breed_group, aes(x = breed_group, y = claim_amount, fill = claim_type)) + 
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(title = "Mean and Median Claim Amount by Breed Group", 
-       x = "Breed Group", 
-       y = "Claim Amount", 
-       fill = "Claim Type") + 
-  scale_fill_manual(values = c("mean_claim_amount" = "steelblue", "median_claim_amount" = "peru"), 
-                    labels = c("mean_claim_amount" = "Mean", "median_claim_amount" = "Median")) +
-  scale_y_continuous(labels = scales::comma) + 
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 severity_claims_box <- severity_claims %>% 
   filter(!is.na(breed_group))
@@ -712,21 +690,6 @@ ggplot(multi_pet_severity, aes(x = is_multi_pet_plan, y = mean_multi,
                                fill = is_multi_pet_plan)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim by Multi-Pet Plan Status",
-       x = "Multi-Pet Plan Status", y = "Claim Amount",
-       fill = "Multi-Pet Plan Status") +
-  scale_fill_manual(values = c("steelblue", "peru"),
-                    labels = c("false" = "Single Pet", "true" = "Multi-Pet")) +
-  scale_x_discrete(labels = c("false" = "Single Pet", "true" = "Multi-Pet"))
-  theme_minimal()
-  
-median_multi_pet_severity <- severity_claims %>% 
-  group_by(is_multi_pet_plan) %>% 
-  summarise(median_multi = median(average_claim_amount))
-  
-ggplot(median_multi_pet_severity, aes(x = is_multi_pet_plan, y = median_multi,
-                               fill = is_multi_pet_plan)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Median Claim by Multi-Pet Plan Status",
        x = "Multi-Pet Plan Status", y = "Claim Amount",
        fill = "Multi-Pet Plan Status") +
   scale_fill_manual(values = c("steelblue", "peru"),
