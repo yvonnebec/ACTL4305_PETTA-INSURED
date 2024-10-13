@@ -359,14 +359,6 @@ ggplot(median_severity_address, aes(x = nb_address_type_adj, y = median_address,
   theme_minimal()
   
 ### 
-### nb_suburb
-### 
-
-###
-### nb_postcode
-###
-
-### 
 ### nb_state
 ###
 ### Obs: NSW highest mean claim but median claim is the lowest
@@ -408,10 +400,34 @@ ggplot(combined_claims_by_state, aes(x = nb_state, y = claim_amount, fill = clai
 ### 
 ### person_dob
 ###
+### Irrelevant since same as Owner Age
 
 ### 
 ### nb_contribution_excess
 ###
+
+severity_claims <- severity_claims %>%
+  mutate(contribution_excess_category = paste0(nb_contribution, ", ", nb_excess))
+
+severity_claims <- severity_claims %>%
+  mutate(contribution_excess_category = factor(contribution_excess_category,
+                                               levels = c("80, 0", "80, 100", "80, 200",
+                                                          "90, 0", "90, 100", "90, 200",
+                                                          "100, 0", "100, 100", "100, 200")))
+
+mean_claim_by_contribution_excess <- severity_claims %>%
+  group_by(contribution_excess_category) %>%
+  summarise(mean_claim_amount = mean(average_claim_amount, na.rm = TRUE))
+
+ggplot(mean_claim_by_contribution_excess, aes(x = contribution_excess_category, y = mean_claim_amount, fill = contribution_excess_category)) + 
+  geom_bar(stat = "identity") + 
+  labs(title = "Mean Claim Amount by Contribution and Excess", 
+       x = "Contribution & Excess", 
+       y = "Claim Amount") + 
+  scale_fill_manual(values = c("steelblue", "peru", "lightsteelblue", "darkslategray", "coral", "saddlebrown", "tan", "darkgreen", "darkgray")) + 
+  scale_y_continuous(labels = scales::comma) + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ### 
 ### pet_age_years
@@ -545,7 +561,48 @@ ggplot(num_breeds_severity_claims, aes(x = nb_breed_group, y = average_claim_amo
 ### nb_average_breed_size
 ###
 
+severity_claims <- severity_claims %>%
+  mutate(breed_size_category = case_when(
+    nb_average_breed_size >= 1 & nb_average_breed_size < 2 ~ "Small",
+    nb_average_breed_size >= 2 & nb_average_breed_size < 3 ~ "Medium",
+    nb_average_breed_size >= 3 & nb_average_breed_size <= 4 ~ "Large",
+    TRUE ~ "Unknown"
+  )) %>%
+  mutate(breed_size_category = factor(breed_size_category, levels = c("Small", "Medium", "Large", "Unknown")))
 
+mean_claim_by_breed_size_category <- severity_claims %>%
+  group_by(breed_size_category) %>%
+  summarise(mean_claim_amount = mean(average_claim_amount, na.rm = TRUE))
+
+ggplot(mean_claim_by_breed_size_category, aes(x = breed_size_category, y = mean_claim_amount, fill = breed_size_category)) + 
+  geom_bar(stat = "identity") + 
+  labs(title = "Mean Claim Amount by Breed Size", 
+       x = "Breed Size", 
+       y = "Mean Claim Amount",
+       fill = "Breed Size") + 
+  scale_fill_manual(values = c("steelblue", "peru", "darkslategray")) +
+  scale_y_continuous(labels = scales::comma) + 
+  theme_minimal()
+
+claim_stats_by_breed_size_category <- severity_claims %>%
+  group_by(breed_size_category) %>%
+  summarise(mean_claim_amount = mean(average_claim_amount, na.rm = TRUE),
+            median_claim_amount = median(average_claim_amount, na.rm = TRUE)) %>%
+  pivot_longer(cols = c(mean_claim_amount, median_claim_amount), 
+               names_to = "claim_type", 
+               values_to = "claim_amount")
+
+ggplot(claim_stats_by_breed_size_category, aes(x = breed_size_category, y = claim_amount, fill = claim_type)) + 
+  geom_bar(stat = "identity", position = "dodge") + 
+  labs(title = "Mean and Median Claim Amount by Breed Size Category", 
+       x = "Breed Size Category", 
+       y = "Claim Amount", 
+       fill = "Claim Type") + 
+  scale_fill_manual(values = c("mean_claim_amount" = "steelblue", "median_claim_amount" = "peru"), 
+                    labels = c("mean_claim_amount" = "Mean", "median_claim_amount" = "Median")) + 
+  scale_y_continuous(labels = scales::comma) + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ### 
 ### nb_breed_type
@@ -650,11 +707,11 @@ ggplot(severity_claims_box, aes(x = breed_group,y = average_claim_amount, fill =
 ### 
 ### nb_breed_name_unique
 ###
+### Too many categories
 
 ### 
 ### nb_breed_name_unique_concat
 ###
-
 
 ### 
 ### is_multi_pet_plan
@@ -721,43 +778,121 @@ ggplot(severity_claims_lead_date, aes(x = lead_date_day_group, y = mean_claim_am
 ### quote_date
 ###
 
+severity_claims <- severity_claims %>%
+  mutate(quote_date = as.Date(quote_date))
+
+severity_claims <- severity_claims %>%
+  mutate(quote_month = floor_date(quote_date, "month"))
+
+mean_claim_by_month <- severity_claims %>%
+  group_by(quote_month) %>%
+  summarise(mean_claim_amount = mean(average_claim_amount, na.rm = TRUE))
+
+ggplot(mean_claim_by_month, aes(x = quote_month, y = mean_claim_amount)) + 
+  geom_line(color = "steelblue", size = 1.2) + 
+  geom_point(color = "steelblue", size = 3) + 
+  labs(title = "Mean Claim Amount by Quote Month", 
+       x = "Quote Month", 
+       y = "Claim Amount") + 
+  scale_y_continuous(labels = scales::comma) + 
+  scale_x_date(date_labels = "%b %Y", date_breaks = "1 month") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ###
 ### quote_time_group
 ###
+
+claim_stats_by_time_group <- severity_claims %>%
+  group_by(quote_time_group) %>%
+  summarise(mean_claim_amount = mean(average_claim_amount, na.rm = TRUE),
+            median_claim_amount = median(average_claim_amount, na.rm = TRUE)) %>%
+  pivot_longer(cols = c(mean_claim_amount, median_claim_amount), 
+               names_to = "claim_type", 
+               values_to = "claim_amount")
+
+ggplot(claim_stats_by_time_group, aes(x = quote_time_group, y = claim_amount, fill = claim_type)) + 
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  labs(title = "Mean and Median Claim Amount by Quote Time Group", 
+       x = "Quote Time Group", 
+       y = "Claim Amount", 
+       fill = "Claim Type") + 
+  scale_fill_manual(values = c("mean_claim_amount" = "steelblue", "median_claim_amount" = "peru"), 
+                    labels = c("mean_claim_amount" = "Mean", "median_claim_amount" = "Median")) + 
+  scale_y_continuous(labels = scales::comma) + 
+  scale_x_discrete(labels = c("Afternoon", "Evening", "Late Night", "Morning")) +
+  theme_minimal()
 
 ###
 ### Median Taxable Income
 ###
 
-severity_claims <- severity_claims %>%
-  rename(median_taxable_income = median_taxable_income.x) %>%
+severity_claims <- severity_claims %>% 
+  rename(median_taxable_income = median_taxable_income.x) %>% 
   select(-median_taxable_income.y)
 
 clean_incomes <- gsub(",", "", severity_claims$median_taxable_income)
-
 severity_claims$median_taxable_income <- as.numeric(clean_incomes)
 
-severity_claims <- severity_claims %>%
-  mutate(taxable_income_bin = cut(median_taxable_income, 
-                                  breaks = seq(0, max(median_taxable_income, na.rm = TRUE), by = 5000),
-                                  labels = paste(seq(0, max(median_taxable_income, na.rm = TRUE) - 5000, by = 5000),
-                                                 seq(5000, max(median_taxable_income, na.rm = TRUE), by = 5000), 
-                                                 sep = "-"), 
+severity_claims <- severity_claims %>% 
+  filter(!is.na(median_taxable_income), !is.na(average_claim_amount))
+
+breaks <- seq(35, max(severity_claims$median_taxable_income / 1000, na.rm = TRUE) + 5, by = 5)
+labels <- paste(seq(35, max(breaks) - 5, by = 5), seq(40, max(breaks), by = 5), sep = "-")
+
+severity_claims <- severity_claims %>% 
+  mutate(taxable_income_bin = cut(median_taxable_income / 1000,
+                                  breaks = breaks,
+                                  labels = labels,
                                   include.lowest = TRUE))
 
-average_claim_by_income_bin <- severity_claims %>%
-  group_by(taxable_income_bin) %>%
-  summarise(average_claim = mean(average_claim_amount, na.rm = TRUE))
+average_claim_by_income_bin <- severity_claims %>% 
+  group_by(taxable_income_bin) %>% 
+  summarise(average_claim = mean(average_claim_amount, na.rm = TRUE)) %>% 
+  filter(!is.na(taxable_income_bin))
 
-ggplot(average_claim_by_income_bin, aes(x = taxable_income_bin, y = average_claim, group = 1)) + 
+ggplot(average_claim_by_income_bin, aes(x = taxable_income_bin, y = average_claim, group = 1)) +
   geom_line(color = "steelblue", size = 1) +
   geom_point(color = "steelblue", size = 2) +
-  labs(title = "Average Claim Amount by Median Taxable Income (5000 Bins)", 
-       x = "Median Taxable Income (Bins)", 
-       y = "Claim Amount") + 
+  labs(title = "Average Claim Amount by Median Taxable Income",
+       x = "Median Taxable Income ('000)",
+       y = "Claim Amount") +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal()
+
+severity_claims %>% group_by(taxable_income_bin) %>% summarise(m = median(average_claim_amount))
+
+ggplot(severity_claims, aes(x = taxable_income_bin, y = average_claim_amount)) +
+  geom_boxplot() +
+  labs(title = "Average Claim Amount by Median Taxable Income",
+       x = "Median Taxable Income ('000)",
+       y = "Claim Amount") +
   scale_y_continuous(labels = scales::comma) +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  scale_y_continuous(limits = c(0,650))
+
+ggplot(severity_claims, aes(x = taxable_income_bin, y = average_claim_amount)) + 
+  geom_boxplot(fill = "steelblue", color = "steelblue", alpha = 0.5) +
+  geom_line(data = average_claim_by_income_bin, 
+            aes(x = taxable_income_bin, y = average_claim, group = 1, color = "Mean Claim"), 
+            size = 1) +
+  geom_point(data = average_claim_by_income_bin, 
+             aes(x = taxable_income_bin, y = average_claim, color = "Mean Claim"), 
+             size = 2) +
+  scale_color_manual(name = "Legend", values = c("Mean Claim" = "darkred")) +
+  labs(title = "Claim Amount by Median Taxable Income (Mean and Boxplot)",
+       x = "Median Taxable Income ('000)",
+       y = "Claim Amount") +
+  scale_y_continuous(labels = scales::comma, limits = c(0, 1000)) + 
+  theme_minimal()
+
+### 
+### nb_suburb
+### 
+
+###
+### nb_postcode
+###
 
 ##
 ### Interaction Terms
