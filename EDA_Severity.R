@@ -74,22 +74,6 @@ severity_total[["nb_breed_trait"]][is.na(severity_total[["nb_breed_trait"]])] <-
 
 
 
-##
-## External Dataset
-## 2021-2022 Year
-## Source: https://data.gov.au/data/dataset/taxation-statistics-2021-22/resource/ea4fd20a-4d97-4fc1-918c-e175cd8db3fd?inner_span=True
-
-median_income <- read.csv("MedianIncome_Postcode.csv", header=TRUE)
-colnames(median_income) <- median_income[1,]
-median_income <- median_income[-1,]
-View(median_income)
-median_income <- median_income %>% select(Postcode, `Median taxable income or loss3$`)
-
-colnames(median_income) <- c("postcode", "median_taxable_income")
-
-severity_total <- merge(
-  severity_total, median_income, by.x = "nb_postcode", by.y = "postcode", all.x = TRUE)
-
 #################
 # Severity EDA  #
 #################

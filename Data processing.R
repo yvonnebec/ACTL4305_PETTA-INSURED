@@ -232,6 +232,24 @@ severity_total <- severity_total %>%
   mutate(average_claim_amount = ifelse(is.na(average_claim_amount), 0, average_claim_amount))
 
 
+##
+## External Dataset
+## 2021-2022 Year
+## Source: https://data.gov.au/data/dataset/taxation-statistics-2021-22/resource/ea4fd20a-4d97-4fc1-918c-e175cd8db3fd?inner_span=True
+
+median_income <- read.csv("MedianIncome_Postcode.csv", header=TRUE)
+colnames(median_income) <- median_income[1,]
+median_income <- median_income[-1,]
+median_income <- median_income %>% select(Postcode, "Average taxable income or loss3\n$","Median taxable income or loss3\n$")
+
+colnames(median_income) <- c("postcode", "average_taxable_income", "median_taxable_income")
+
+severity_total <- merge(
+  severity_total, median_income, by.x = "nb_postcode", by.y = "postcode", all.x = TRUE)
+
+View(severity_total)
+###
 ### Export Severity to CSV
+###
 write.csv(severity_total, "severity_total.csv", row.names = FALSE)
 
