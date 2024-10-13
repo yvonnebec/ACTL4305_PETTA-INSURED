@@ -8,7 +8,7 @@
 # Import library
 #
 library(rpart)
-library(dplyr)
+library(tidyverse)
 severity_total <- read.csv("severity_total.csv")
 sample <- read.csv("Sample_price_output_file.csv")
 
@@ -73,6 +73,7 @@ mode_value <- names(sort(table(severity_total[["nb_breed_trait"]]), decreasing =
 severity_total[["nb_breed_trait"]][is.na(severity_total[["nb_breed_trait"]])] <- mode_value
 
 
+
 ##
 ## External Dataset
 ## 2021-2022 Year
@@ -80,8 +81,9 @@ severity_total[["nb_breed_trait"]][is.na(severity_total[["nb_breed_trait"]])] <-
 
 median_income <- read.csv("MedianIncome_Postcode.csv", header=TRUE)
 colnames(median_income) <- median_income[1,]
-median_income <- median_income[-1,] %>% select(Postcode, `Median taxable income or loss3
-$`)
+median_income <- median_income[-1,]
+View(median_income)
+median_income <- median_income %>% select(Postcode, `Median taxable income or loss3$`)
 
 colnames(median_income) <- c("postcode", "median_taxable_income")
 
@@ -885,6 +887,15 @@ ggplot(severity_claims, aes(x = taxable_income_bin, y = average_claim_amount)) +
        y = "Claim Amount") +
   scale_y_continuous(labels = scales::comma, limits = c(0, 1000)) + 
   theme_minimal()
+
+###
+### nb_postcode to SA Mapping
+### SA Level 2, Level 3, Level 4
+sa2 <- read.csv("POSTCODE_SA2.csv", na.rm=T)
+sa3 <- read.csv("POSTCODE_SA3.csv", na.rm=T)
+sa4 <- read.csv("POSTCODE_SA4.csv", na.rm=T)
+
+
 
 ### 
 ### nb_suburb

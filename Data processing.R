@@ -215,7 +215,6 @@ severity_total <- severity_total %>%
 
 
 #### Excess flag
-
 severity_total <- severity_total %>%
   mutate(nb_excess_FLAG = ifelse(nb_excess > 0, TRUE, FALSE))
 
