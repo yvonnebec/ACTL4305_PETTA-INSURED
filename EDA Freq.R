@@ -342,3 +342,63 @@ ggplot(summary_data, aes(x = nb_address_type_adj, y = avg_claim_frequency, fill 
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency by Address Type", x = "Generation", y = "Average Claim Frequency") +
   theme_minimal()
+
+##########################
+# Policy Characteristics #
+##########################
+
+
+###------------------- quote_date --------------------------###
+
+# Summarizing the data by Quote time, calculating the average claim frequency
+summary_data <- Data_full %>%
+  drop_na(quote_time_group) %>%
+  group_by(quote_time_group) %>%
+  summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE)) 
+
+
+# Bar plot of average claim frequency by quote time
+ggplot(summary_data, aes(x = quote_time_group, y = avg_claim_frequency, fill = quote_time_group)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Claim Frequency quote time", x = "Generation", y = "Average Claim Frequency") +
+  theme_minimal()
+
+
+
+###------------------- Policy First Inception --------------------------###
+
+# Extract the date part and convert to Date type
+Data_full <- Data_full %>%
+  mutate(policy_inception_date = as.Date(substr(nb_policy_first_inception_date, 1, 10), format = "%d/%m/%Y"))
+
+# Summarize the data by date (optional: calculating average claim frequency per date)
+summary_data <- Data_full %>%
+  group_by(policy_inception_date) %>%
+  summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
+
+# Plot the change in claim frequency over time
+ggplot(summary_data, aes(x = policy_inception_date, y = avg_claim_frequency)) +
+  geom_line(color = "blue", alpha = 0.5) +  # Keeps the original line for reference
+  geom_smooth(method = "loess", color = "red", size = 1.2) +  # Adds a smoother line
+  labs(title = "Smoothed Claim Frequency Over Time", 
+       x = "Policy Inception Date", 
+       y = "Average Claim Frequency") +
+  theme_minimal()
+
+
+# Summarizing the data by month
+summary_data_monthly <- Data_full %>%
+  mutate(month = format(policy_inception_date, "%Y-%m")) %>%
+  group_by(month) %>%
+  summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
+
+# Convert month to a proper date format for better ordering in the plot
+summary_data_monthly <- summary_data_monthly %>%
+  mutate(month = as.Date(paste0(month, "-01")))
+
+# Create a bar plot of average claim frequency by month
+ggplot(summary_data_monthly, aes(x = month, y = avg_claim_frequency)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Claim Frequency by Month", 
+       x = "Month", y = "Average Claim Frequency") +
+  theme_minimal()
