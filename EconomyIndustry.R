@@ -44,7 +44,6 @@ economy_industry_cols <- economy_industry %>%
 merged_economy <- economy_industry_cols %>%
   left_join(SA4, by = c("Code" = "SA4_CODE_2011"))
 
-
 nrow(merged_economy)
 
 View(merged_economy)
@@ -122,14 +121,15 @@ severity_total <- severity_total %>%
     -businesses_turnover_2m_to_5m,
     -businesses_turnover_5m_to_10m,
     -businesses_turnover_10m_or_more,
-    #total_number_of_businesses_band,
+    -total_number_of_businesses_band,
     -businesses_turnover_0_to_50k_band,
     -businesses_turnover_50k_to_200k_band,
     -businesses_turnover_200k_to_2m_band,
     -businesses_turnover_2m_to_5m_band,
     -businesses_turnover_5m_to_10m_band,
     -businesses_turnover_10m_or_more_band)
-  
+
+View(banded_result)
 
 severity_total <- severity_total %>% 
   left_join(banded_result, by = c("nb_postcode" = "POSTCODE"))
