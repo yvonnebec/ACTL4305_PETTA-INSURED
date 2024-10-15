@@ -158,4 +158,6 @@ severity_total <- severity_total %>%
     businesses_turnover_10m_or_more_band = replace_na(businesses_turnover_10m_or_more_band, "Unknown")
   )
 
+View(severity_total)
+
 write.csv(severity_total, file = "severity_total.csv", row.names = FALSE)
