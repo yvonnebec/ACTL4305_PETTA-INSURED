@@ -85,6 +85,9 @@ View(result)
 # Banding weighted data
 banded_result <- result %>%
   mutate(
+    total_number_of_businesses_band = cut(weighted_total_number_of_businesses, 
+                                            breaks = c(-Inf, 10000, 20000, 30000, 40000, 50000, 75000, 100000, Inf), 
+                                            labels = c("0-10000", "10000-20000", "20000-30000", "30000-40000","40000-50000", "50000-75000", "75000-100000", "100000+")),
     businesses_turnover_0_to_50k_band = cut(weighted_businesses_turnover_0_to_50k, 
                                             breaks = c(-Inf, 100, 250, 500, 750, 1000, 2500, Inf), 
                                             labels = c("0-100", "100-250", "250-500", "500-750", "750-1000", "1000-2500", "2500+")),
@@ -105,9 +108,28 @@ banded_result <- result %>%
                                                labels = c("0-100", "100-250", "250-500", "500-750", "750-1000", "1000-2500", "2500+"))
   )
 
+#View(banded_result)
 banded_result$POSTCODE <- as.character(banded_result$POSTCODE)
 
-severity_total <- read.csv(file="severity_total.csv", skip = 1, header = TRUE)
+severity_total <- read.csv(file="severity_total.csv", header = TRUE)
+colnames(severity_total)
+severity_total <- severity_total %>% 
+  select(
+    -weighted_total_number_of_businesses,
+    -businesses_turnover_0_to_50k,
+    -businesses_turnover_50k_to_200k,
+    -businesses_turnover_200k_to_2m,
+    -businesses_turnover_2m_to_5m,
+    -businesses_turnover_5m_to_10m,
+    -businesses_turnover_10m_or_more,
+    #total_number_of_businesses_band,
+    -businesses_turnover_0_to_50k_band,
+    -businesses_turnover_50k_to_200k_band,
+    -businesses_turnover_200k_to_2m_band,
+    -businesses_turnover_2m_to_5m_band,
+    -businesses_turnover_5m_to_10m_band,
+    -businesses_turnover_10m_or_more_band)
+  
 
 severity_total <- severity_total %>% 
   left_join(banded_result, by = c("nb_postcode" = "POSTCODE"))
