@@ -78,6 +78,12 @@ severity_total <- read.csv("severity_total.csv")
 View(severity_total)
 
 severity_total <- severity_total %>%
-  left_join(banded_result, by = c("nb_postcode" = "POSTCODE"))
+  left_join(banded_result, by = c("nb_postcode" = "POSTCODE")) %>% 
+  mutate(
+    agricultural_land_band = replace_na(agricultural_land_band, "Unknown"),
+    national_parks_band = replace_na(national_parks_band, "Unknown")
+  )
+
+
 
 write.csv(severity_total, file = "severity_total.csv", row.names = FALSE)
