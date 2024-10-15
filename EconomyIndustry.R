@@ -180,6 +180,22 @@ severity_total <- severity_total %>%
     businesses_turnover_10m_or_more_band = replace_na(businesses_turnover_10m_or_more_band, "Unknown")
   )
 
-View(severity_total)
+severity_economy <- severity_total %>% 
+  select(
+    nb_postcode,
+    weighted_total_number_of_businesses,
+    businesses_turnover_0_to_50k,
+    businesses_turnover_50k_to_200k,
+    businesses_turnover_200k_to_2m,
+    businesses_turnover_2m_to_5m,
+    businesses_turnover_5m_to_10m,
+    businesses_turnover_10m_or_more,
+    total_number_of_businesses_band,
+    businesses_turnover_0_to_50k_band,
+    businesses_turnover_50k_to_200k_band,
+    businesses_turnover_200k_to_2m_band,
+    businesses_turnover_2m_to_5m_band,
+    businesses_turnover_5m_to_10m_band,
+    businesses_turnover_10m_or_more_band)
 
-write.csv(severity_total, file = "severity_total.csv", row.names = FALSE)
+write.csv(severity_economy, file = "severity_economy.csv", row.names = FALSE)
