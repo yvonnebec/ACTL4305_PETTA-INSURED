@@ -79,8 +79,10 @@ banded_result <- result %>%
 severity_total <- read.csv("severity_total.csv", header=TRUE)
 View(severity_total)
 
-severity_total <- severity_total %>%
-  select(-national_parks_band, -agricultural_land_band) %>% 
+# severity_total <- severity_total %>%
+#  select(-national_parks_band, -agricultural_land_band)
+
+severity_total <- severity_total %>% 
   left_join(banded_result, by = c("nb_postcode" = "POSTCODE")) %>% 
   rename(agricultural_land = weighted_agricultural_land,
          national_parks = weighted_national_parks)
@@ -103,4 +105,9 @@ severity_total <- severity_total %>%
 
 table(is.na(severity_total$agricultural_land_band))
 
+severity_land <- severity_total %>% 
+  select(nb_postcode, agricultural_land, national_parks, agricultural_land_band,
+         national_parks_band)
+
+write.csv(severity_land, file = "severity_land.csv", row.names = FALSE)
 write.csv(severity_total, file = "severity_total.csv", row.names = FALSE)
