@@ -76,7 +76,8 @@ banded_result <- result %>%
                                  right = TRUE)
   )
 
-severity_total <- read.csv("severity_total.csv")
+severity_total <- read.csv("severity_total.csv", header=TRUE)
+View(severity_total)
 
 severity_total <- severity_total %>%
   select(-national_parks_band, -agricultural_land_band) %>% 
