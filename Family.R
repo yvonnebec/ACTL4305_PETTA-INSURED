@@ -107,6 +107,52 @@ write.csv(severity_external, "C:/Users/luori/OneDrive/Desktop/2024/Semester 3/As
 # Family & Community #
 ######################
 
+###------------------Average Homelessness per 10,000 people ------------------###
+# Create a histogram of the avg_weighted_homeless_rate_clean
+ggplot(Data_family, aes(x = avg_weighted_homeless_rate_clean)) +
+  geom_histogram(binwidth = 50, fill = "skyblue", color = "black") +
+  labs(title = "Histogram of Average Weighted Homeless Rate", 
+       x = "Average Weighted Homeless Rate", 
+       y = "Frequency") +
+  theme_minimal()
+
+summary(severity_external$avg_weighted_homeless_rate)
+
+# Create bins for avg_weighted_homeless_rate in intervals of 50, with the final bin being >200
+severity_external <- severity_external %>%
+  filter(!is.na(avg_weighted_homeless_rate)) %>%
+  mutate(
+    homeless_count_per10k = cut(
+      as.numeric(avg_weighted_homeless_rate),
+      breaks = c(0, 25, 50, 75, 100, Inf),  # Custom bins based on the provided statistics
+      labels = c("0-25", "25-50", "51-75", "76-100", ">150"),
+      right = FALSE  # Left-closed intervals
+    )
+  )
+
+summary(Data_family$homeless_count_per10k)
+
+# View the first few rows of the updated dataset
+head(Data_family)
+
+# Summarize the data by homeless_rate_bins and calculate average claims_frequency
+summary_data <- Data_family %>%
+  group_by(homeless_count_per10k) %>%
+  summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
+
+# Create a bar plot
+ggplot(summary_data, aes(x = homeless_count_per10k, y = avg_claim_frequency, fill = homeless_count_per10k)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Claims Frequency by Homeless Rate Bins (200 intervals)", 
+       x = "Homeless Rate Bins (200 intervals)", 
+       y = "Average Claims Frequency") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+###might be in relation to other variables 
+# 101 - 150 highest
+
 
 ###------------------------- Household Size ------------------------------###
 
