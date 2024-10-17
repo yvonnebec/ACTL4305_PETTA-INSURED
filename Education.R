@@ -111,6 +111,14 @@ severity_external$engagement_bins <- cut(severity_external$avg_weighted_Total_fu
                                                            na.rm = TRUE), 
                                          include.lowest = TRUE)
 
+# Banding the avg_weighted_Total_fully_engaged_percent data into 6 neat bands
+severity_external <- severity_external %>%
+  mutate(engagement_bins = cut(avg_weighted_Total_fully_engaged_percent,
+                               breaks = c(0, 75, 80, 85, 90, 100),  # First band from 0 to 75%, then more granular
+                               labels = c("0-75%", "75-80%", "80-85%", "85-90%", "90-100%"),
+                               include.lowest = TRUE,
+                               right = TRUE))
+
 # Check the binning
 table(severity_external$engagement_bins)
 
@@ -120,13 +128,11 @@ engagement_bin_analysis <- aggregate(claim_frequency ~ engagement_bins, data = s
 # Print the result
 print(engagement_bin_analysis)
 
-library(ggplot2)
-
 # Plotting the average claim frequency by engagement bins
 ggplot(engagement_bin_analysis, aes(x = engagement_bins, y = claim_frequency)) +
   geom_bar(stat = "identity") +
   labs(title = "Claim Frequency by Engagement Percent Bins", 
-       x = "Engagement Percent Bins based on 4 quantiles", 
+       x = "Engagement Percent Bins", 
        y = "Average Claim Frequency") +
   theme_minimal()
 
@@ -135,12 +141,21 @@ ggplot(engagement_bin_analysis, aes(x = engagement_bins, y = claim_frequency)) +
 
 ### avg_weighted_Completed_year12
 
+summary(severity_external$avg_weighted_Completed_year12)
+
 # Create 3 equal-sized bins (quantiles) for avg_weighted_Completed_year12
 severity_external$year12_bins <- cut(severity_external$avg_weighted_Completed_year12, 
                                      breaks = quantile(severity_external$avg_weighted_Completed_year12, 
                                                        probs = seq(0, 1, length.out = 6), 
                                                        na.rm = TRUE), 
                                      include.lowest = TRUE)
+
+severity_external <- severity_external %>%
+  mutate(year12_bins = cut(avg_weighted_Completed_year12,
+                           breaks = c(0, 40, 50, 60, 70, 80, 100),
+                           labels = c("0-40%", "40-50%", "50-60%", "60-70%", "70-80%", "80-100%"),
+                           include.lowest = TRUE,
+                           right = TRUE))
 
 # Plotting a histogram for avg_weighted_Completed_year12 without creating bins
 ggplot(severity_external, aes(x = avg_weighted_Completed_year12)) +
@@ -173,6 +188,7 @@ ggplot(year12_bin_analysis, aes(x = year12_bins, y = claim_frequency)) +
 ### --------------------- Unemployment rate (%) ---------------------------###
 
 ### avg_weighted_Unemployment_rate
+summary(severity_external$avg_weighted_Unemployment_rate)
 
 # Plotting a histogram for avg_weighted_Unemployment_rate without creating bins
 ggplot(severity_external, aes(x = avg_weighted_Unemployment_rate)) +
@@ -188,6 +204,13 @@ severity_external$unemployment_bins <- cut(severity_external$avg_weighted_Unempl
                                                              probs = seq(0, 1, length.out = 6), 
                                                              na.rm = TRUE), 
                                            include.lowest = TRUE)
+
+
+severity_external <- severity_external %>%
+  mutate(unemployment_bins = cut(avg_weighted_Unemployment_rate, 
+                                 breaks = c(0, 4, 4.5, 5, 5.5, 6, Inf),  # Manually defined breakpoints, last bin is 6%+
+                                 labels = c("0-4%", "4-4.5%", "4.5-5%", "5-5.5%", "5.5-6%", "6+%"),
+                                 include.lowest = TRUE))
 
 # Check the binning
 table(severity_external$unemployment_bins)
@@ -215,6 +238,8 @@ ggplot(unemployment_bin_analysis, aes(x = unemployment_bins, y = claim_frequency
 
 ### Higher participation rate - slightly higher claim frequency
 
+summary(severity_external$avg_weighted_Participation_rate)
+
 ggplot(severity_external, aes(x = avg_weighted_Participation_rate)) +
   geom_histogram(color = "black", bins = 30) +
   labs(title = "Distribution of Unemployment Rate", 
@@ -230,6 +255,13 @@ severity_external$participation_bins <- cut(severity_external$avg_weighted_Parti
                                                               probs = seq(0, 1, length.out = 6), 
                                                               na.rm = TRUE), 
                                             include.lowest = TRUE)
+
+# Manually create bins based on 0-50%, 5% increments, and 70%+
+severity_external <- severity_external %>%
+  mutate(participation_bins = cut(avg_weighted_Participation_rate,  # Replace with your actual column name
+                           breaks = c(0, 50, 55, 60, 65, 70, Inf),  # First bin 0-50%, 5% increments, last bin 70%+
+                           labels = c("0-50%", "50-55%", "55-60%", "60-65%", "65-70%", "70%+"),
+                           include.lowest = TRUE))
 
 # Check the binning
 table(severity_external$participation_bins)
