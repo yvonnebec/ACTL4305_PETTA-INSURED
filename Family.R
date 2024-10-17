@@ -1,5 +1,13 @@
 
+# Main dataset
+severity_total <- read.csv("severity_Conan.csv")
 
+severity_total <- severity_total %>%
+  mutate(nb_postcode = as.numeric(nb_postcode))
+
+sum(is.na(severity_total$nb_postcode))
+
+head(severity_total)
 # Get datasets
 family <- read.csv("Family.csv")
 SA4 <- read.csv("postcode_SA4.csv")
@@ -76,14 +84,96 @@ result <- merged_data %>%
     weighted_rentless30percent = sum(weighted_rentless30percent, na.rm = TRUE)
   )
 
+result <- result %>%
+  mutate(POSTCODE = as.character(POSTCODE))
 
 summary(result$avg_weighted_homeless_rate)
 
 # Merging result with severity_total based on nb_postcode
-Severity_external <- severity_total %>%
+severity_external <- severity_total %>%
   left_join(result, by = c("nb_postcode" = "POSTCODE"))
 
 # View the first few rows of the merged dataset
-head(Severity_external)
+head(severity_external)
 
 view(result %>% filter(weighted_Averagehouseholdsize < 2))
+
+
+# Exporting to a specific directory, e.g., Desktop (modify the path for your system)
+write.csv(severity_external, "C:/Users/luori/OneDrive/Desktop/2024/Semester 3/Assignment/Assignment Data/Merged Data/severity_external.csv", row.names = FALSE)
+
+
+######################
+# Family & Community #
+######################
+
+
+###------------------------- Household Size ------------------------------###
+
+summary(severity_external$weighted_Averagehouseholdsize)
+
+
+
+# Manually defining breaks based on the range of 2 to 3.2
+breaks <- seq(2, 3.2, by = 0.2)
+severity_external$household_bins <- cut(severity_external$weighted_Averagehouseholdsize, 
+                                        breaks = breaks, include.lowest = TRUE)
+
+
+# Check the binning
+table(severity_external$household_bins)
+
+ggplot(severity_external, aes(x = household_bins)) +
+  geom_bar() +
+  labs(title = "Histogram of Weighted Average Household Size Bins", 
+       x = "Household Size Bins", 
+       y = "Frequency") +
+  theme_minimal()
+
+# Equal-width binning analysis
+bin_analysis <- aggregate(claim_frequency ~ household_bins, data = severity_external, FUN = mean)
+
+
+## Follow a normal distribution with higher than nromal kurtosis
+
+# Print the results
+print(bin_analysis)
+
+
+# Plot for equal-width bins
+ggplot(bin_analysis, aes(x = household_bins, y = claim_frequency)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Claim Frequency by Weighted Household Size Bins (Equal Width)", 
+       x = "Household Size Bins", y = "Average Claim Frequency") +
+  theme_minimal()
+
+# Try quantile?
+
+
+### --------------------- Mortgage ---------------------------###
+
+
+
+
+
+
+
+######################
+# Hip Health Scores #
+######################
+
+
+### External data is a lot more granular
+# might have to group manually
+
+#feed data into chatgpt (public) and then get then to match based on nb_breed_trait
+
+
+hip_health <- read.csv("dog_breed_health_score_hip.csv")
+
+
+head(hip_health)
+unique(hip_health$Breed)
+
+
+
