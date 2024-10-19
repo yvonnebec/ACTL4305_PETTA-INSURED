@@ -1,0 +1,279 @@
+
+######################
+# Severity Modelling #
+######################
+
+Final_data <- read.csv("actl4305_final_data_v2.csv")
+
+library(randomForest)
+library(caret)
+
+Model_data <- Final_data %>%
+  filter(average_claim > 0)
+
+# Check for missing values
+sum(is.na(Model_data))
+
+# Summary of NAs for each column
+na_summary <- colSums(is.na(Model_data))
+# Display the summary
+na_summary
+
+
+###treat
+#pet_is_switcher
+#person_dob
+#owner_age_years
+#altitude
+
+# Replace NAs in 'pet_is_switcher' with 'unknown'
+Model_data$pet_is_switcher[is.na(Model_data$pet_is_switcher)] <- "unknown"
+
+# Replace NAs in 'person_dob' with 'missing'
+Model_data$person_dob[is.na(Model_data$person_dob)] <- "missing"
+
+# Replace NAs in 'owner_age_years' with 'missing'
+Model_data$owner_age_years[is.na(Model_data$owner_age_years)] <- "missing"
+
+# Replace NAs in 'altitude' with 'unknown'
+Model_data$altitude[is.na(Model_data$altitude)] <- "unknown"
+
+# Check if NAs were replaced
+summary(Model_data)
+
+###-------------------- Random Forest ---------------------###
+
+### USE CV for optimal trees
+
+# Step 1: Split the data into training (75%) and testing (25%)
+set.seed(123)  # For reproducibility
+
+# Create training and testing datasets
+train_index <- createDataPartition(Model_data$average_claim, p = 0.75, list = FALSE)
+train_data <- Model_data[train_index, ]  # 75% training data
+test_data <- Model_data[-train_index, ]  # 25% testing data
+
+# Separate features and target variable for training and testing sets
+X_train <- train_data[, !(names(train_data) %in% "average_claim")]
+y_train <- train_data$average_claim
+
+X_test <- test_data[, !(names(test_data) %in% "average_claim")]
+y_test <- test_data$average_claim
+
+# Step 2: Train the random forest model on the training set
+set.seed(123)
+rf_model <- randomForest(X_train, y_train, ntree = 250, importance = TRUE)
+
+# Step 3: Evaluate on the Training Set
+
+# Predict on training data
+train_predictions <- predict(rf_model, X_train)
+
+# Calculate RMSE for training set
+train_rmse <- sqrt(mean((train_predictions - y_train)^2))
+
+# Calculate R-squared for training set
+train_r_squared <- 1 - (sum((y_train - train_predictions)^2) / sum((y_train - mean(y_train))^2))
+
+# Print the results for the training set
+print(paste("Training RMSE:", round(train_rmse, 2)))
+print(paste("Training R-squared:", round(train_r_squared, 2)))
+
+# Step 4: Evaluate on the Test Set
+
+# Predict on test data
+test_predictions <- predict(rf_model, X_test)
+
+# Calculate RMSE for test set
+test_rmse <- sqrt(mean((test_predictions - y_test)^2))
+
+# Calculate R-squared for test set
+test_r_squared <- 1 - (sum((y_test - test_predictions)^2) / sum((y_test - mean(y_test))^2))
+
+# Print the results for the test set
+print(paste("Test RMSE:", round(test_rmse, 2)))
+print(paste("Test R-squared:", round(test_r_squared, 2)))
+
+# Step 5: View the Random Forest Model and Plot OOB Error
+
+# Print the random forest model summary
+print(rf_model)
+
+# Plot the OOB error as the forest grows
+plot(rf_model)
+
+# Optional: View variable importance
+varImpPlot(rf_model)
+
+
+###--------------------- XGboost ----------------------###
+
+##################### CHANGE PARAMETERS based on previous modelling
+
+install.packages("xgboost")
+library(xgboost)
+
+# Step 1: Split the data into training (75%) and testing (25%)
+set.seed(123)  # For reproducibility
+
+# Assuming Model_data is your dataset and average_claim is the target variable
+train_index <- createDataPartition(Model_data$average_claim, p = 0.75, list = FALSE)
+
+# Create training and testing datasets
+train_data <- Model_data[train_index, ]  # 75% training data
+test_data <- Model_data[-train_index, ]  # 25% testing data
+
+# Separate features and target variable for training and testing sets
+X_train <- data.matrix(train_data[, !(names(train_data) %in% "average_claim")])
+y_train <- train_data$average_claim
+
+X_test <- data.matrix(test_data[, !(names(test_data) %in% "average_claim")])
+y_test <- test_data$average_claim
+
+# Step 2: Train the XGBoost model on the training set
+params <- list(
+  objective = "reg:squarederror",  # Regression task
+  eta = 0.1,                       # Learning rate
+  max_depth = 6,                   # Maximum depth of trees
+  gamma = 0,                       # Minimum loss reduction
+  colsample_bytree = 0.8,          # Subsample ratio of columns
+  subsample = 0.7,                 # Subsample ratio of training instances
+  min_child_weight = 1             # Minimum sum of instance weight (hessian) in a child
+)
+
+# Train the XGBoost model on the training set
+set.seed(123)
+xgb_model <- xgboost(
+  params = params,
+  data = X_train,
+  label = y_train,
+  nrounds = 200,              # Number of boosting rounds
+  verbose = 1
+)
+
+# Step 3: Evaluate the model on the Training Set
+
+# Predict on training data
+train_predictions <- predict(xgb_model, X_train)
+
+# Calculate RMSE for training set
+train_rmse <- sqrt(mean((train_predictions - y_train)^2))
+
+# Calculate R-squared for training set
+train_r_squared <- 1 - (sum((y_train - train_predictions)^2) / sum((y_train - mean(y_train))^2))
+
+# Print the results for the training set
+print(paste("Training RMSE:", round(train_rmse, 2)))
+print(paste("Training R-squared:", round(train_r_squared, 2)))
+
+# Step 4: Evaluate the model on the Test Set
+
+# Predict on test data
+test_predictions <- predict(xgb_model, X_test)
+
+# Calculate RMSE for test set
+test_rmse <- sqrt(mean((test_predictions - y_test)^2))
+
+# Calculate R-squared for test set
+test_r_squared <- 1 - (sum((y_test - test_predictions)^2) / sum((y_test - mean(y_test))^2))
+
+# Print the results for the test set
+print(paste("Test RMSE:", round(test_rmse, 2)))
+print(paste("Test R-squared:", round(test_r_squared, 2)))
+
+# Step 5: View the XGBoost Model
+
+# Print the XGBoost model summary
+print(xgb_model)
+
+# Plot the RMSE over the boosting rounds
+plot(xgb_model$evaluation_log$iter, xgb_model$evaluation_log$train_rmse, type = "l", 
+     xlab = "Number of Trees (Boosting Rounds)", ylab = "Training RMSE", main = "XGBoost Training Curve")
+
+
+
+###------------------------ Cross Validation ----------------------###
+
+
+##############################    RF
+
+# Set up cross-validation
+train_control <- trainControl(method = "cv", number = 5)  # 5-fold cross-validation
+
+# Train Random Forest with cross-validation
+set.seed(123)
+rf_model_cv <- train(
+  average_claim ~ ., 
+  data = Model_data, 
+  method = "rf",
+  trControl = train_control, 
+  tuneGrid = expand.grid(mtry = floor(sqrt(ncol(Model_data) - 1)))  # Set up tuning grid for mtry
+)
+
+# View cross-validation results
+print(rf_model_cv)
+
+#################################     XGB
+
+# Set up 5-fold cross-validation
+train_control <- trainControl(method = "cv", number = 5)  # 5-fold cross-validation
+
+xgb_grid <- expand.grid(
+  nrounds = c(100, 200),    # Number of boosting rounds
+  eta = c(0.01, 0.1, 0.3),  # Learning rate
+  max_depth = c(3, 6, 9),   # Maximum depth of trees
+  gamma = c(0, 1),          # Minimum loss reduction
+  colsample_bytree = c(0.6, 0.8, 1),  # Subsample ratio of columns
+  min_child_weight = c(1, 5),         # Minimum sum of instance weight (hessian) needed in a child
+  subsample = c(0.5, 0.7, 1)          # Subsample ratio of training instances
+)
+
+
+# Train XGBoost with custom grid
+xgb_model_cv <- train(
+  average_claim ~ ., 
+  data = Model_data, 
+  method = "xgbTree", 
+  trControl = train_control,
+  tuneGrid = xgb_grid
+)
+
+
+# View the best hyperparameters
+print(xgb_model_cv$bestTune)
+# View detailed results for all the combinations of hyperparameters
+print(xgb_model_cv$results)
+# Plot the results of the cross-validation
+plot(xgb_model_cv)
+
+# Predict on the training data
+predictions <- predict(xgb_model_cv, newdata = Model_data)
+
+# Calculate performance metrics on the training data
+rmse <- sqrt(mean((Model_data$average_claim - predictions)^2))
+r_squared <- 1 - (sum((Model_data$average_claim - predictions)^2) / sum((Model_data$average_claim - mean(Model_data$average_claim))^2))
+
+print(paste("In-sample RMSE:", round(rmse, 3)))
+print(paste("In-sample R-squared:", round(r_squared, 3)))
+
+# Cross-validation RMSE and R-squared for the best model
+xgb_model_cv$results[which.min(xgb_model_cv$results$RMSE), ]
+
+
+
+######## Results
+
+# Get OOB error from the random forest model
+print(rf_model_cv$finalModel)
+
+# Compare OOB error with cross-validation results
+print(rf_model_cv$results)
+
+
+
+
+
+
+
+
+
