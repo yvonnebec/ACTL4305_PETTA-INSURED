@@ -151,13 +151,9 @@ severity_total <- severity_total %>%
 # Updating column data types #
 ##############################
 
-# date_columns <- c(
-#   "UW_Date",
-#   "nb_policy_first_inception_date",
-#   "person_dob",
-#   "quote_date",
-#   "quote_date"
-# )
+date_columns <- c(
+  "UW_Date"
+)
 
 # If you only need the date part and not the time, you can use as.Date
 severity_total$claim_first_date <- as.Date(severity_total$claim_first_date, format="%d/%m/%Y")
@@ -289,6 +285,8 @@ severity_total$pet_de_sexed_age <- factor(severity_total$pet_de_sexed_age,
 levels(severity_total$pet_de_sexed_age)
 
 #### Feature engineering ####
+
+
 
 # Replace NA values with 0 for claim-related columns
 severity_total$cumulative_claim_amount[is.na(severity_total$cumulative_claim_amount)] <- 0
@@ -722,10 +720,10 @@ table(severity_total$average_income_band)
 severity_total <- severity_total %>%
   mutate(rent_BAND = factor(
     case_when(
-      weighted_rentmore30percent <= 45 ~ "0-45%",
-      weighted_rentmore30percent > 45 ~ "45%+"
+      weighted_rentmore30percent <= 40 ~ "0-40%",
+      weighted_rentmore30percent > 40 ~ "40%+"
     ),
-    levels = c("0-45%", "45%+")
+    levels = c("0-40%", "40%+")
   ))
 
 # Check the table of rent_BAND
@@ -766,10 +764,10 @@ print(table(severity_total$agricultural_land_BAND))
 severity_total <- severity_total %>%
   mutate(national_parks_BAND = factor(
     case_when(
-      national_parks >= 0 & national_parks <= 0.09 ~ "0-9%",
-      national_parks > 0.09 ~ ">9%"
+      national_parks >= 0 & national_parks <= 0.1 ~ "0-10%",
+      national_parks > 0.1 ~ ">10%"
     ),
-    levels = c("0-9%", ">9%")
+    levels = c("0-10%", ">10%")
   ))
 
 # Check the table of national_parks_BAND
@@ -866,7 +864,30 @@ table(severity_total$pet_age_BAND)
 severity_total$nb_contribution_FACTOR <- as.factor(severity_total$nb_contribution)
 severity_total$nb_excess_FACTOR <- as.factor(severity_total$nb_excess)
 
+
+severity_total$electoraterating_remap <- ifelse(severity_total$electoraterating == "Rural", 
+                                                "Rural", 
+                                                "All Else")
+
+# Convert to a factor and specify 'All Else' as the base level
+severity_total$electoraterating_BAND <- factor(severity_total$electoraterating_remap, 
+                                                levels = c("All Else", "Rural"))
+
+
+
+
 frequency_df <- severity_total
+
+
+frequency_df$electoraterating_grouped <- ifelse(frequency_df$electoraterating %in% c("Outer Metropolitan", "Provincial", "Rural"),
+                                                "Outer/Provincial/Rural", 
+                                                "Inner/Unknown")
+
+# Convert to a factor and set 'Inner/Unknown' as the base level
+frequency_df$electoraterating_grouped <- factor(frequency_df$electoraterating_grouped, 
+                                                levels = c("Inner/Unknown", "Outer/Provincial/Rural"))
+
+
 
 # Define the predictors
 predictors <- c("tenure.x", "pet_de_sexed", "pet_age_years", 
@@ -891,10 +912,7 @@ predictors <- c(#"pet_gender",
                 "breed_MAP",
                 "nb_contribution_FACTOR",
                 "agricultural_land_BAND",
-                "national_parks_BAND",
-                "electorate_rating_banded", 
-                "median_income_band",
-                "rent_BAND")
+                "electoraterating_grouped")
 
 
 predictors <- c("binned_breeds",
@@ -923,51 +941,111 @@ print(na_counts)
 frequency_df <- frequency_df %>%
   drop_na(num_claims, all_of(predictors))
 
+
+
+
+#### Frequency model split ####
+frequency_df <- severity_total
+
+# Split the data into training and testing datasets
+split_data <- frequency_df %>%
+  arrange(exposure_id, tenure.x) %>%  # Arrange by exposure_id and tenure.x
+  group_by(exposure_id) %>%
+  mutate(row_id = row_number(),               # Assign row numbers within each group
+         total_rows = n(),                    # Get the total number of rows per group
+         split_point = floor(total_rows * 0.85)) %>%  # 80% split point
+  ungroup() %>%
+  mutate(set = if_else(row_id <= split_point, "train", "test")) %>%  # Train/test set assignment
+  dplyr::select(-row_id, -total_rows, -split_point)   # Remove helper columns
+
+# Create the training and testing datasets
+frequency_df_train <- split_data %>% filter(set == "train")
+frequency_df_test  <- split_data %>% filter(set == "test")
+
+
+
 # Set a threshold for earned_units (e.g., 1e-6)
-frequency_df$earned_units[frequency_df$earned_units < 1e-6] <- 1e-6
+frequency_df_train$earned_units[frequency_df_train$earned_units < 0.1] <- 0.1
 
 frequency_formula <- as.formula(paste("num_claims ~", paste(predictors, collapse = " + ")))
 
-freq_glm <- glm(frequency_formula, family = poisson(link = "log"), data = frequency_df, offset = log(earned_units))
+freq_glm <- glm(frequency_formula, family = poisson(link = "log"), data = frequency_df_train, offset = log(earned_units))
 
 
 # Summary of the model
 summary(freq_glm)
 
 
+frequency_formula_nb <- as.formula(paste("num_claims ~", paste(predictors, collapse = " + "), "+ offset(log(earned_units))"))
 
-#### num_claims modelling ####
+library(glmmTMB)
+library(caret)
 
+# Define the formula
+frequency_formula_nb <- as.formula(paste("num_claims ~", paste(predictors, collapse = " + "), "+ offset(log(earned_units))"))
 
-predictors <- c("pet_gender", 
-                "pet_de_sexed", 
-                "is_multi_pet_plan", 
-                "nb_address_type_adj",
-                "pet_age_BAND",
-                "owner_age_band",
-                "nb_number_of_breeds",
-                "nb_average_breed_size",
-                "electoraterating",
-                "median_income_band",
-                "nb_excess_FACTOR",
-                "breed_MAP",
-                "homeless_count_per10k",
-                "rent_BAND",
-                "agricultural_land_BAND",
-                "national_parks_BAND", 
-                "fully_engaged_BAND",
-                "nb_contribution_FACTOR",
-                "num_claims")
+# Fit the negative binomial model
+nb_model <- glmmTMB(frequency_formula_nb, data = frequency_df_train, family = nbinom2())
+
+# Check the model summary
+summary(nb_model)
 
 
-num_conditions_df <-  severity_total %>%
-  filter(num_claims > 1)
+frequency_formula <- as.formula(paste("num_claims ~", paste(predictors, collapse = " + "), "+ log(earned_units)"))
 
-conditions_formula <- as.formula(paste("num_unique_conditions ~", paste(predictors, collapse = " + ")))
+# Fit the Negative Binomial GLM
+freq_glm_nb <- glm.nb(frequency_formula, 
+                      data = frequency_df_train)
 
-cond_glm <- glm(conditions_formula, family = poisson(link = "log"), data = num_conditions_df)
 
-summary(cond_glm)
+
+predictions_test <- predict(freq_nb, newdata = frequency_df_test, type = "response", offset = log(frequency_df_test$earned_units))
+residuals_test <- frequency_df_test$num_claims - predictions_test
+library(ggplot2)
+ggplot(frequency_df_test, aes(x = predictions_test, y = residuals_test)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Predicted Values",
+       x = "Predicted Values",
+       y = "Residuals") +
+  theme_minimal()
+
+rmse <- sqrt(mean(residuals_test^2))
+print(paste("RMSE:", rmse))
+
+log_likelihood_test <- sum(dpois(frequency_df_test$num_claims, lambda = predictions_test, log = TRUE))
+print(paste("Log-Likelihood on Test Set:", log_likelihood_test))
+
+# Compute MAE
+mae <- mean(abs(residuals_test))
+print(paste("MAE:", mae))
+
+# Chi-square goodness-of-fit test
+chisq_test <- sum((frequency_df_test$num_claims - predictions_test)^2 / predictions_test)
+df <- nrow(frequency_df_test) - length(coefficients(freq_glm))  # degrees of freedom
+p_value <- pchisq(chisq_test, df = df, lower.tail = FALSE)
+print(paste("Chi-Square Test p-value:", p_value))
+
+# Overdispersion check
+deviance <- sum((frequency_df_test$num_claims - predictions_test)^2 / predictions_test)
+dispersion <- deviance / df
+print(paste("Dispersion Ratio:", dispersion))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -979,6 +1057,7 @@ severity_df <-  severity_total %>%
 severity_df$average_claim <- severity_df$cumulative_claim_amount/severity_df$num_claims
 
 predictors_sev <- predictors
+
 
 
 #### severity variable remappingg ####
@@ -1032,15 +1111,33 @@ severity_df$median_income_band_sev <- cut(severity_df$median_taxable_income,
                                          include.lowest = TRUE, right = FALSE)
 
 
+
+
+
+
+
 predictors_sev <- c("agricultural_land_BAND",
                     "national_parks_sev_band",
                     "average_income_band",
                     "breed_severity_band", 
                     "pet_age_BAND",
-                    "nb_excess_FACTOR")
+                    "nb_excess_FACTOR",
+                    "num_claims")
 
 # Assuming cumulative_claim_amount is the target variable
 
+split_data <- severity_df %>%
+  arrange(exposure_id, tenure.x) %>%  # Arrange by exposure_id and tenure.x
+  mutate(row_id = row_number()) %>%   # Assign row numbers to entire dataset
+  mutate(set = ifelse(row_id <= floor(n() * 0.85), "train", "test"))  # 85% split point
+
+# Create the training and testing datasets
+severity_df_train <- split_data %>% filter(set == "train")
+severity_df_test  <- split_data %>% filter(set == "test")
+
+# Check row counts
+nrow(severity_df_train)
+nrow(severity_df_test)
 
 
 
@@ -1049,16 +1146,124 @@ severity_formula <- as.formula(paste("cumulative_claim_amount ~", paste(predicto
 # Fit a GLM for cumulative claim amount with a Gamma family and log link
 severity_glm <- glm(severity_formula, 
                     family = Gamma(link = "log"), 
-                    data = severity_df,
+                    data = severity_df_train,
                     offset = log(earned_units))
 
 summary(severity_glm)
 
+severity_df_test_clean <- severity_df_test %>%
+  dplyr::select(all_of(predictors_sev), "earned_units", "cumulative_claim_amount") %>%
+  na.omit()
+
+# Make predictions using the GLM model
+glm_predictions <- predict(severity_glm, newdata = severity_df_test_clean)
+
+# Prepare actual values from the cleaned dataset
+actual_values_glm <- severity_df_test_clean$cumulative_claim_amount  
+
+rmse_glm <- sqrt(mean((glm_predictions - actual_values_glm)^2))
+print(paste("GLM RMSE:", rmse_glm))
 
 
 
 
 
+
+
+library(xgboost)
+
+
+predictors_sev <- c("agricultural_land_BAND", 
+                    "national_parks_sev_band", 
+                    "average_income_band", 
+                    "breed_severity_band",  
+                    "pet_age_BAND", 
+                    "nb_excess_FACTOR", 
+                    "num_claims")
+
+# Prepare the training data
+train_data <- severity_df_train %>%
+  dplyr::select(all_of(predictors_sev), cumulative_claim_amount) %>%
+  na.omit()
+
+# Check the number of rows after removing NAs
+nrow(train_data)
+# One-hot encode the training data
+train_matrix <- model.matrix(cumulative_claim_amount ~ . - 1, data = train_data)
+
+# Prepare the label
+train_label <- train_data$cumulative_claim_amount
+
+# Convert to xgb.DMatrix format
+train_dmatrix <- xgb.DMatrix(data = train_matrix, label = train_label)
+
+params <- list(
+  objective = "reg:squarederror",  # Regression task
+  eval_metric = "rmse",  # Evaluation metric
+  eta = 0.01,            # Learning rate
+  max_depth = 6,        # Maximum depth of a tree
+  subsample = 0.8,      # Subsample ratio of the training instance
+  colsample_bytree = 0.8 # Subsample ratio of columns when constructing each tree
+)
+
+set.seed(42)  # For reproducibility
+xgb_model <- xgb.train(params = params,
+                       data = train_dmatrix,
+                       nrounds = 200,  # Number of boosting rounds
+                       verbose = 1)
+
+
+severity_df_test_clean <- severity_df_test %>%
+  dplyr::select(all_of(predictors_sev), "cumulative_claim_amount") %>%
+  na.omit()
+
+# Check the number of rows after removing NAs
+nrow(severity_df_test_clean)
+
+
+test_data <- severity_df_test_clean %>%
+  dplyr::select(all_of(predictors_sev)) %>%
+  na.omit()
+
+# One-hot encode the test data
+test_matrix <- model.matrix(~ . - 1, data = test_data)
+
+# Convert test data to xgb.DMatrix format
+test_dmatrix <- xgb.DMatrix(data = test_matrix)
+
+# Make predictions
+predictions <- predict(xgb_model, newdata = test_dmatrix)
+
+actual_values <- severity_df_test_clean$cumulative_claim_amount  # Modify this as necessary
+
+# Calculate RMSE
+rmse <- sqrt(mean((predictions - actual_values)^2))
+print(paste("RMSE:", rmse))
+
+importance_matrix <- xgb.importance(feature_names = feature_names, model = xgb_model)
+
+xgb.plot.importance(importance_matrix)
+
+
+
+
+
+
+
+
+
+
+
+
+library(glmnet)
+
+library(mgcv)
+severity_gam <- gam(cumulative_claim_amount ~ agricultural_land_BAND + national_parks_sev_band +
+                      average_income_band + breed_severity_band + pet_age_BAND + 
+                      nb_excess_FACTOR + s(num_claims), 
+                    family = Gamma(link = "log"), data = severity_df_train)
+
+summary(severity_gam)
 
 
 #################
