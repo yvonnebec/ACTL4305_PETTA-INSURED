@@ -18,6 +18,9 @@ setwd("C:/Users/luori/OneDrive/Desktop/2024/Semester 3/Assignment/Assignment Dat
 
 Data_full <- read.csv("actl4305_final_df_v8.csv")
 
+str(Data_full)
+# severity_full
+
 Data_claims <- Data_full %>%
                 filter(claim_frequency > 0 & claim_frequency <= 100)
 
@@ -37,23 +40,12 @@ mean(Data_claims$chronic)
 
 #only 0.2% not significant
 
-
-###look at number of unique conditions
-
-
 #######
 # EDA #
 #######
 
 # Age in months
 ggplot(Data_full, aes(x = pet_age_months)) +
-  geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
-  labs(title = "Distribution of Pet Age",
-       x = "Pet Age (months)",
-       y = "Frequency") +
-  theme_minimal()
-
-ggplot(Data_claims, aes(x = pet_age_months)) +
   geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
   labs(title = "Distribution of Pet Age",
        x = "Pet Age (months)",
@@ -84,12 +76,12 @@ ggplot(Data_multiple, aes(x = claim_frequency)) +
 ###----------------PET GENDER----------------###
 
 # Calculate average claim frequency by pet gender
-average_claim_frequency <- Data %>%
+average_claim_frequency <- Data_full %>%
   group_by(pet_gender) %>%
   summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
 
 # Create the barplot
-ggplot(average_claim_frequency, aes(x = pet_gender, y = avg_claim_frequency, fill = pet_gender)) +
+gender_plot <- ggplot(average_claim_frequency, aes(x = pet_gender, y = avg_claim_frequency, fill = pet_gender)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency by Pet Gender", x = "Pet Gender", y = "Average Claim Frequency") +
   theme_minimal() + theme(legend.position = "none") +
@@ -98,11 +90,6 @@ ggplot(average_claim_frequency, aes(x = pet_gender, y = avg_claim_frequency, fil
         axis.title.x = element_text(hjust = 0.5),
         axis.title.y = element_text(hjust = 0.5)) 
 
-ggplot(Data_multiple, aes(x = claim_frequency, fill = pet_gender)) +
-  geom_histogram(binwidth = 1, position = "identity", alpha = 0.25, color = "lightblue") +
-  labs(title = "Histograms of Claim Frequency by gender",
-       x = "Claim Frequency", y = "Count", fill = "Multi-Pet Plan") +
-  theme_minimal()
 
 ###----------------PET DESEX STATUS-------------###
 
@@ -112,7 +99,7 @@ average_claim_frequency_desex <- Data_full %>%
   summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
 
 # Create the barplot
-ggplot(average_claim_frequency_desex, aes(x = pet_de_sexed, y = avg_claim_frequency, fill = pet_de_sexed)) +
+Desexed_plot <- ggplot(average_claim_frequency_desex, aes(x = pet_de_sexed, y = avg_claim_frequency, fill = pet_de_sexed)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency by Pet desex status", x = "Pet desex status", y = "Average Claim Frequency") +
   theme_minimal() + theme(legend.position = "none") +
@@ -121,34 +108,11 @@ ggplot(average_claim_frequency_desex, aes(x = pet_de_sexed, y = avg_claim_freque
         axis.title.x = element_text(hjust = 0.5),
         axis.title.y = element_text(hjust = 0.5)) 
 
-###----------------COMBINED-----------------###
-
-# Summarizing the data by is_multi_pet_plan and pet_gender
-summary_data <- Data_claims %>%
-  group_by(pet_de_sexed, pet_gender) %>%
-  summarise(total_claim_frequency = sum(claim_frequency, na.rm = TRUE))
-
-# Bar plot of claim frequency by multi-pet plan and pet gender
-ggplot(summary_data, aes(x = as.factor(pet_de_sexed), y = total_claim_frequency, fill = pet_gender)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(title = "Bar Plot of Claim Frequency by Multi-Pet Plan and Pet Gender",
-       x = "Multi-Pet Plan (True/False)", y = "Total Claim Frequency", fill = "Pet Gender") +
-  theme_minimal()
-
-### Add labels
-
-
-
-
 
 ###----------------PET AGE------------------###
 
-# Reorder factor levels of pet_age_group
-Data_full$pet_age_years <- factor(Data_full$pet_age_years, 
-                             levels = c("0-6 months", "7-12 months", "1 years", "2 years", 
-                                        "3 years", "4 years", "5 years", "6 years", 
-                                        "7 years", "8 years", "9 years", "10 years"))
-
+Data_full$pet_age_years <- as.factor(Data_full$pet_age_years)
+summary(Data_full$pet_age_years)
 
 
 # Group "9 years" and "10 years" together into "9+ years" using ifelse
@@ -197,18 +161,19 @@ summary_table <- Data_full %>%
 print(summary_table)
 
 # Bar plot for average claim frequency by multi-pet plan status
-ggplot(summary_table, aes(x = is_multi_pet_plan, y = avg_claim_frequency, fill = is_multi_pet_plan)) +
+Multi_plan_plot <- ggplot(summary_table, aes(x = is_multi_pet_plan, y = avg_claim_frequency, fill = is_multi_pet_plan)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency by Multi-Pet Plan Status", x = "Multi-Pet Plan", y = "Average Claim Frequency") +
-  theme_minimal()
+  theme_minimal() +
+  theme(text = element_text(size = 11)) +  theme(legend.position = "none") +
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
 
 #########################
 # Breed Characteristics #
 #########################
-
-########### DO A BAR GRAPH WITH PROPORTION OF CLAIMS AND NO_CLAIMS for breed
-
 
 # Summarizing the data by nb_breed_type, calculating the average claim frequency
 summary_data <- Data_full %>%
@@ -216,13 +181,18 @@ summary_data <- Data_full %>%
   summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
 
 # Bar plot of average claim frequency by nb_breed_type
-ggplot(summary_data, aes(x = nb_breed_type, y = avg_claim_frequency, fill = nb_breed_type)) +
+breedtype_plot <- ggplot(summary_data, aes(x = nb_breed_type, y = avg_claim_frequency, fill = nb_breed_type)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency by Breed Type",
        x = "Breed Type", y = "Average Claim Frequency") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(legend.position = "none") + 
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
+breedtype_plot
 
 ###---------------BREED GROUP-----------------###
 
@@ -234,21 +204,24 @@ avg_claim_frequency_breed <- Data_full %>%
 
 print(avg_claim_frequency_breed)
 
-ggplot(avg_claim_frequency_breed, aes(x = reorder(breed_group, -mean_claim_frequency), y = mean_claim_frequency)) +
+breedgroup_plot <- ggplot(avg_claim_frequency_breed, aes(x = reorder(breed_group, -mean_claim_frequency), y = mean_claim_frequency)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency by Breed Trait", x = "Breed Trait", y = "Mean Claim Frequency") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(legend.position = "none") + 
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
 
 ###-------------- BREED SIZE --------------------###
-
 
 # nb_average_breed_size
 summary(severity_total$nb_average_breed_size)
 
 # Perform analysis for nb_average_breed_size with custom breaks for severity_total
-severity_total <- severity_total %>%
+Data_full <- Data_full %>%
   filter(!is.na(nb_average_breed_size), !is.na(claim_frequency)) %>%
   mutate(nb_average_breed_size_bands = cut(nb_average_breed_size, 
                                            breaks = c(1, 1.5, 2, 2.5, 3, 4),
@@ -258,44 +231,27 @@ severity_total <- severity_total %>%
 #^^^ 2-2.5 abonormally high, is this maybe because of cross breeds change average to be non-whole number?
 # could it be caused by some other correlated factor?
 
-severity_total <- severity_total %>%
-  filter(!is.na(nb_average_breed_size), !is.na(claim_frequency)) %>%  # Remove NA values
-  mutate(nb_average_breed_size_bands = cut(nb_average_breed_size, 
-                                           breaks = c(1, 1.5, 2, 3, 4),  # Custom breaks without 2.5
-                                           labels = c("1-1.5", "1.5-2", "2-3", "3+"),
-                                           include.lowest = TRUE))
-
 # Check the distribution of the bins
-table(severity_total$nb_average_breed_size_bands)
+table(Data_full$nb_average_breed_size_bands)
 
 # Summarize by average severity total for each bin
-avg_severity_bands_breed_size <- severity_total %>%
+avg_bands_breed_size <- Data_full %>%
   group_by(nb_average_breed_size_bands) %>%
   summarise(mean_severity_total = mean(claim_frequency, na.rm = TRUE))
 
 # Plot a bar graph of the average severity total by bins for nb_average_breed_size
-ggplot(avg_severity_bands_breed_size, aes(x = nb_average_breed_size_bands, y = mean_severity_total)) +
+breedsize_plot <- ggplot(avg_bands_breed_size, aes(x = nb_average_breed_size_bands, y = mean_severity_total)) +
   geom_bar(stat = "identity", fill = "lightblue", color = "black") +
-  labs(title = "Average Severity Total by Breed Size Bands", 
+  labs(title = "Average Frequency Total by Breed Size Bands", 
        x = "Breed Size Bands", 
-       y = "Average Severity Total") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-## check for patterns
-
-# Create a stacked bar chart comparing breed size bands with breed traits
-ggplot(severity_total, aes(x = nb_average_breed_size_bands, fill = nb_breed_type)) +
-  geom_bar(position = "fill") +  # Stacked bar chart with proportions
-  labs(title = "Proportion of Breed Traits Across Breed Size Bands", 
-       x = "Breed Size Bands", 
-       y = "Proportion of Traits") +
+       y = "Average Frequency") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_y_continuous(labels = scales::percent_format())  # Show the y-axis in percentages
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
-
+breedsize_plot
 
 ###---------------- Number of Breeds -----------------###
 
@@ -309,21 +265,20 @@ avg_claim_frequency_breeds <- severity_total %>%
   summarise(mean_claim_frequency = mean(claim_frequency, na.rm = TRUE))
 
 # Plot a bar graph comparing nb_number_of_breeds for average claim frequency
-ggplot(avg_claim_frequency_breeds, aes(x = as.factor(nb_number_of_breeds), y = mean_claim_frequency)) +
+no_breeds_plot <- ggplot(avg_claim_frequency_breeds, aes(x = as.factor(nb_number_of_breeds), y = mean_claim_frequency)) +
   geom_bar(stat = "identity", fill = "lightblue", color = "black") +
   labs(title = "Average Claim Frequency by Number of Breeds", 
        x = "Number of Breeds", 
        y = "Average Claim Frequency") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
 ################################
 # Geographical Characteristics #
 ################################
-
-ggplot(Data_multiple, aes(x = nb_state, y = claim_frequency)) +
-  geom_boxplot() +
-  labs(title = "Claim Frequency by State", x = "State", y = "Claim Frequency")
 
 # Summarizing the data by nb_state, calculating the average claim frequency
 summary_data <- Data_full %>%
@@ -331,13 +286,14 @@ summary_data <- Data_full %>%
   summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
 
 # Bar plot of average claim frequency by state
-ggplot(summary_data, aes(x = nb_state, y = avg_claim_frequency)) +
+state_plot <- ggplot(summary_data, aes(x = nb_state, y = avg_claim_frequency)) +
   geom_bar(stat = "identity", alpha = 0.7) +
   labs(title = "Average Claim Frequency by State", x = "State", y = "Average Claim Frequency") +
-  theme_minimal()
-
-
-### Feature Engineering
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
 ##########################
 # Policy Characteristics #
@@ -353,11 +309,16 @@ summary_data <- Data_full %>%
   summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
 
 # Bar plot of average claim frequency by premium contribution
-ggplot(summary_data, aes(x = nb_contribution, y = avg_claim_frequency)) +
+contribution_plot <- ggplot(summary_data, aes(x = nb_contribution, y = avg_claim_frequency)) +
   geom_bar(stat = "identity", alpha = 0.7) +
   labs(title = "Average Claim Frequency vs. Premium Contribution", 
        x = "Premium Contribution", y = "Average Claim Frequency") +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
+
+contribution_plot
 
 # Greater coverage = greater chance of claim being made
 
@@ -369,12 +330,16 @@ summary_data <- Data_full %>%
   summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
 
 # Bar plot of average claim frequency by nb_excess
-ggplot(summary_data, aes(x = nb_excess, y = avg_claim_frequency)) +
+excess_plot <- ggplot(summary_data, aes(x = nb_excess, y = avg_claim_frequency)) +
   geom_bar(stat = "identity", alpha = 0.7) +
   labs(title = "Average Claim Frequency vs. Excess Amount", 
        x = "Excess Amount", y = "Average Claim Frequency") +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
+excess_plot
 
 # Lower excess plans have a greater claim frequency
 
@@ -383,13 +348,12 @@ ggplot(summary_data, aes(x = nb_excess, y = avg_claim_frequency)) +
 # Owner Characteristics #
 #########################
 
-
 # Creating bins for generations based on age ranges
 Data_full <- Data_full %>%
   mutate(
     generation = cut(owner_age_years,
-                     breaks = c(0, 24, 39, 54, 74, Inf),   # Define the age ranges
-                     labels = c("Gen Z", "Millennials", "Gen X", "Baby Boomers", "Silent Generation"),  # Assign labels
+                     breaks = c(0, 24, 39, 54, 74, Inf),
+                     labels = c("Gen Z", "Millennials", "Gen X", "Baby Boomers", "Silent Generation"),
                      right = FALSE)  # Whether the intervals are closed on the right
   )
 
@@ -402,10 +366,14 @@ summary_data <- Data_full %>%
 summary_data
 
 # Bar plot of average claim frequency by generation
-ggplot(summary_data, aes(x = generation, y = avg_claim_frequency, fill = generation)) +
+owner_age_plot <- ggplot(summary_data, aes(x = generation, y = avg_claim_frequency, fill = generation)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency by Generation", x = "Generation", y = "Average Claim Frequency") +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
 
 ###------------------- Address Type --------------------------###
@@ -418,16 +386,21 @@ summary_data <- Data_full %>%
   summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE)) 
 
 
-# Bar plot of average claim frequency by generation
-ggplot(summary_data, aes(x = nb_address_type_adj, y = avg_claim_frequency, fill = nb_address_type_adj)) +
+# Bar plot of average claim frequency by address type
+address_type_plot <- ggplot(summary_data, aes(x = nb_address_type_adj, y = avg_claim_frequency, fill = nb_address_type_adj)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency by Address Type", x = "Address Type", y = "Average Claim Frequency") +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
+
+address_type_plot
 
 ##########################
 # Policy Characteristics #
 ##########################
-
 
 ###------------------- quote_date --------------------------###
 
@@ -439,14 +412,20 @@ summary_data <- Data_full %>%
 
 
 # Bar plot of average claim frequency by quote time
-ggplot(summary_data, aes(x = quote_time_group, y = avg_claim_frequency, fill = quote_time_group)) +
+quote_time_plot <- ggplot(summary_data, aes(x = quote_time_group, y = avg_claim_frequency, fill = quote_time_group)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency quote time", x = "Quote time", y = "Average Claim Frequency") +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
-
+quote_time_plot
 
 ###------------------- Policy First Inception --------------------------###
+
+########DOESNT WORK###############
 
 # Extract the date part and convert to Date type
 Data_full <- Data_full %>%
@@ -484,12 +463,9 @@ ggplot(summary_data_monthly, aes(x = month, y = avg_claim_frequency)) +
        x = "Month", y = "Average Claim Frequency") +
   theme_minimal()
 
-
-
 ###------------------- Switcher --------------###
 
 ### Drop false as we don't know if switch or not
-
 
 summary_data <- Data_full %>%
   drop_na(pet_is_switcher) %>%
@@ -498,28 +474,19 @@ summary_data <- Data_full %>%
 
 
 # Bar plot of average claim frequency by switcher
-ggplot(summary_data, aes(x = pet_is_switcher, y = avg_claim_frequency, fill = pet_is_switcher)) +
+Switcher_plot <- ggplot(summary_data, aes(x = pet_is_switcher, y = avg_claim_frequency, fill = pet_is_switcher)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency by swicher", x = "Switched or not", y = "Average Claim Frequency") +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
+
+Switcher_plot
 
 summary(Data_full$pet_is_switcher)
-
-
 summary(Data_full$nb_breed_trait)
-
-
-Data_family <- Severity_external
-
-summary(Data_family$avg_weighted_homeless_rate)
-
-str(Data_family$avg_weighted_homeless_rate)
-
-
-
-### Link in MedianIncome
-###Link in Australian_Postcodes
-### Link in dog_breed_health_score
 
 
 ###################################
@@ -533,11 +500,14 @@ summary_data <- Data_full %>%
   summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
 
 # Side-by-side bar plot of average claim frequency by desexed status and pet gender
-ggplot(summary_data, aes(x = as.factor(pet_de_sexed), y = avg_claim_frequency, fill = pet_gender)) +
+Gemder_Desexed_plot <- ggplot(summary_data, aes(x = as.factor(pet_de_sexed), y = avg_claim_frequency, fill = pet_gender)) +
   geom_bar(stat = "identity", position = position_dodge()) +
   labs(title = "Average Claim Frequency by Desexed Status and Pet Gender",
        x = "Desexed Status (True/False)", y = "Average Claim Frequency", fill = "Pet Gender") +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
 ### Males slightly higher claim frequency
 ### Non-desexed pets have higher overall claim frequency
@@ -548,14 +518,22 @@ summary_data <- Data_full %>%
   summarise(avg_claim_frequency = mean(claim_frequency, na.rm = TRUE))
 
 # Side-by-side bar plot of average claim frequency by multi-pet plan and pet gender
-ggplot(summary_data, aes(x = nb_address_type_adj, y = avg_claim_frequency, fill = as.factor(is_multi_pet_plan))) +
+Address_plan_plot <- ggplot(summary_data, aes(x = nb_address_type_adj, y = avg_claim_frequency, fill = as.factor(is_multi_pet_plan))) +
   geom_bar(stat = "identity", position = position_dodge()) +
   labs(title = "Average Claim Frequency by Multi-Pet Plan and Address type",
        x = "Address Type", y = "Average Claim Frequency", fill = "Mutli Pet Plan") +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
 ### Same trend where males are slighlty higher than average
 ### Non- multi plans have slightly higher claim freq
+
+
+############################
+### Proprotion of Claims ###
+############################
 
 ### looks AT proPORTION OF ALL CLAIMS
 
@@ -579,15 +557,15 @@ claim_freq_by_age_long <- claim_freq_by_age %>%
 
 # Create the stacked bar plot
 ggplot(claim_freq_by_age_long, aes(x = proportion, y = pet_age_years, fill = type)) +
-  geom_bar(stat = "identity", color = "black") +  # Stacked bars with a black border
+  geom_bar(stat = "identity", color = "black") + 
   scale_fill_manual(values = c("proportion_claims" = "lightblue", "proportion_non_claims" = "grey")) +
   labs(title = "Proportion of Total Claims by Pet Age Group", 
        x = "Proportion of Claims", 
        y = "Pet Age Group") +
-  scale_x_continuous(labels = scales::percent_format()) +  # Show x-axis in percentages
+  scale_x_continuous(labels = scales::percent_format()) +
   theme_minimal() +
-  theme(panel.grid.major.y = element_blank()) +  # Remove horizontal gridlines
-  coord_flip()  # Flip the axes for horizontal bars
+  theme(panel.grid.major.y = element_blank()) + 
+  coord_flip() 
 
 ### Looks at proportion of claims within each age group
 ### Overwhelming Majority of claims are within the 0-6month brackets
@@ -598,9 +576,9 @@ claim_freq_by_age <- Data_full %>%
   summarise(
     total_claims = sum(num_claims, na.rm = TRUE),
     num_pets = n(),
-    proportion_claims = total_claims / num_pets  # Calculate proportion of claims
+    proportion_claims = total_claims / num_pets 
   ) %>%
-  mutate(proportion_non_claims = 1 - proportion_claims)  # Calculate non-claims as 1 minus the claims proportion
+  mutate(proportion_non_claims = 1 - proportion_claims) 
 
 # Reshape the data into long format for stacked bar plot
 claim_freq_by_age_long <- claim_freq_by_age %>%
@@ -619,30 +597,10 @@ p <- ggplot(claim_freq_by_age_long, aes(x = pet_age_years, y = proportion, fill 
        y = "Proportion of Claimss") +
   scale_y_continuous() +  # Show y-axis in percentages
   theme_minimal() +
-  theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank())  # Remove vertical gridlines
-  
-
-# Add a highlight flag for the specific age groups: "0-6 months", "7 years", and "9+ years"
-claim_freq_by_age_long <- claim_freq_by_age_long %>%
-  mutate(highlight = case_when(
-    pet_age_years %in% c("0-6 months", "7 years", "9+ years") ~ "highlight",  # Highlight specific age groups
-    TRUE ~ "normal"  # All other columns
-  ))
-
-# Create the stacked bar plot with custom colors for highlighted columns
-p <- ggplot(claim_freq_by_age_long, aes(x = pet_age_years, y = proportion, fill = type)) +
-  geom_bar(stat = "identity", position = "stack", aes(color = highlight), size = 1.0, width = 0.7) +  # Decrease width to increase space between bars
-  scale_fill_manual(values = c("proportion_claims" = "lightblue", "proportion_non_claims" = "#7986cb"),
-                    labels = c("Claims", "Non-Claims")) +  # Custom colors and labels
-  scale_color_manual(values = c("highlight" = "grey", "normal" = "black"), guide = FALSE) +  # Set bar colors
-  labs(title = "Proportion of Claims and Non-Claims by Pet Age Group", 
-       x = "Pet Age Group", 
-       y = "Proportion of Total Pets") +
-  scale_y_continuous() +  # Y-axis
-  theme_minimal() +
-  theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
-        axis.text.x = element_text(margin = margin(t = 10)))
-
+  theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank()) +
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
 # Add rectangles around the specific bars: "0-6 months", "7 years", and "9+ years"
 p + 
@@ -671,9 +629,14 @@ summary_data <- Data_full %>%
 summary_data
 
 # Bar plot of average claim frequency by generation
-ggplot(summary_data, aes(x = generation, y = avg_claim_frequency, fill = generation)) +
+Generation_plot <-ggplot(summary_data, aes(x = generation, y = avg_claim_frequency, fill = generation)) +
   geom_bar(stat = "identity") +
   labs(title = "Average Claim Frequency by Generation", x = "Generation", y = "Average Claim Frequency") +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(hjust = 0.5),
+        axis.title.y = element_text(hjust = 0.5))
 
+Generation_plot
 
