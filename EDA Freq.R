@@ -16,9 +16,9 @@ ggthemr('fresh')
 #set working directory
 setwd("C:/Users/luori/OneDrive/Desktop/2024/Semester 3/Assignment/Assignment Data")
 
-Data_full <- severity_total
+Data_full <- read.csv("actl4305_final_df_v8.csv")
 
-Data_claims <- severity_total %>%
+Data_claims <- Data_full %>%
                 filter(claim_frequency > 0 & claim_frequency <= 100)
 
 ######################
