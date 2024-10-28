@@ -606,3 +606,32 @@ severity_income_owner < -ggplot(mean_claim_by_income_generation, aes(x = average
     fill = "Owner Generation Band"
   ) +
   theme_minimal()
+
+###------------------- Breed Severity Band --------------------------###
+
+Data_claims$breed_severity_band <- case_when(
+  Data_claims$nb_breed_trait %in% c("bull", "mastiff", "pinscher", "spitz related") ~ "High Severity",
+  Data_claims$nb_breed_trait %in% c("cross", "retriever", "hound", "shepherd type", 
+                                    "pointer", "spaniel", "teckel",  "sighthound", "collie related") ~ "Moderate Severity",
+  Data_claims$nb_breed_trait %in% c("terrier", "setter") ~ "Low Severity",
+  Data_claims$nb_breed_trait %in% c("unknown", "Unknown", "traditional", "white fluffy", "water dog") ~ "Unknown"
+)
+
+# Convert the new column to factor and check distribution
+Data_claims$breed_severity_band <- factor(Data_claims$breed_severity_band, 
+                                          levels = c("High Severity", "Moderate Severity", "Low Severity", "Unknown"))
+
+severity_breed_severity <- Data_claims %>%
+  group_by(breed_severity_band) %>%
+  drop_na(breed_severity_band) %>% 
+  summarise(avg_claim_severity = mean(average_claim_amount, na.rm = TRUE))
+
+severity_severity_band <- ggplot(severity_breed_severity, aes(x = breed_severity_band, y = avg_claim_severity)) +
+  geom_col() +
+  labs(
+    title = "Average Claim Severity by Breed Severity",
+    x = "Breed Severity",
+    y = "Average Claim Severity",
+    fill = "Breed Severity"
+  ) +
+  theme_minimal()
