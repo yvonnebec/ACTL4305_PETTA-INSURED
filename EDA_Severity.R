@@ -578,3 +578,41 @@ ggplot(mean_claim_by_excess_income, aes(x = average_income_band, y = avg_claim_s
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+###------------------- Breed Group x National Park --------------------------###
+
+mean_claim_by_national_breed <- Data_claims %>%
+  group_by(breed_group, national_parks_BAND) %>%
+  summarise(avg_claim_severity = mean(average_claim_amount, na.rm = TRUE))
+
+ggplot(mean_claim_by_national_breed, aes(x = breed_group, y = avg_claim_severity, fill = national_parks_BAND)) +
+  geom_col() +
+  labs(
+    title = "Average Claim Severity by Breed Group and National Park Band",
+    x = "Breed Group",
+    y = "Average Claim Severity",
+    fill = "National Parks"
+  ) +
+  theme_minimal()
+
+###------------------- Generations x Income --------------------------###
+
+mean_claim_by_income_generation <- Data_claims %>%
+  mutate(
+    generation = cut(owner_age_years,
+                     breaks = c(0, 24, 39, 54, 74, Inf),
+                     labels = c("Gen Z", "Millennials", "Gen X", "Baby Boomers", "Silent Generation"),
+                     right = FALSE)
+  ) %>% 
+  group_by(average_income_band, generation) %>%
+  summarise(avg_claim_severity = mean(average_claim_amount, na.rm = TRUE))
+
+ggplot(mean_claim_by_income_generation, aes(x = average_income_band, y = avg_claim_severity, fill = generation)) +
+  geom_col() +
+  labs(
+    title = "Average Claim Severity by Income Band and Owner Generation",
+    x = "Income Band",
+    y = "Average Claim Severity",
+    fill = "Owner Generation Band"
+  ) +
+  theme_minimal()
