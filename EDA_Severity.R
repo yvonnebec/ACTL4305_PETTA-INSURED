@@ -561,3 +561,20 @@ ggplot(mean_claim_by_national_income, aes(x = average_income_band, y = avg_claim
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+###------------------- Income x Excess --------------------------###
+
+mean_claim_by_excess_income <- Data_claims %>%
+  group_by(average_income_band, nb_excess_FLAG) %>%
+  summarise(avg_claim_severity = mean(average_claim_amount, na.rm = TRUE))
+
+ggplot(mean_claim_by_excess_income, aes(x = average_income_band, y = avg_claim_severity, fill = nb_excess_FLAG)) +
+  geom_col() +
+  labs(
+    title = "Average Claim Severity by Income Band and Excess Flag",
+    x = "Average Income Band",
+    y = "Average Claim Severity",
+    fill = "Excess Flag"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
